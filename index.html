@@ -55,6 +55,18 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .verdict .mtk{border-left:1px solid var(--line);padding-left:18px}
 .verdict .mtk:not(.go) .big{color:var(--muted)}
 @media (max-width:900px){.verdict{grid-template-columns:1fr 1fr}.verdict .mtk{grid-column:1/-1;border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+.ew{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.ew .call{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+.ew .call .dirword{font:700 clamp(34px,6vw,52px)/1 var(--display);color:var(--accent);letter-spacing:.01em}
+.ew .call p{margin:0;flex:1 1 320px;min-width:0}
+.ew .sides{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ew .side{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:5px;min-width:0;background:var(--surface2)}
+.ew .side.win{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.ew .side b{font:600 20px/1.15 var(--display)}
+.ew .days{display:flex;flex-wrap:wrap;gap:6px}
+.ew .day{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;display:flex;flex-direction:column;align-items:center;min-width:72px}
+.ew .day b{font:700 16px/1.1 var(--display)}
+@media (max-width:560px){.ew .sides{grid-template-columns:1fr}}
 .why{display:flex;flex-direction:column;gap:10px}
 .why h3{font-size:20px}
 .whycols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -145,6 +157,7 @@ section{display:flex;flex-direction:column;gap:10px}
   </header>
 
   <div id="error" hidden class="err"></div>
+  <div class="ew" id="eastwest"></div>
   <div class="strip" id="strip"></div>
   <div class="verdict" id="verdict"></div>
 
@@ -236,6 +249,14 @@ const SPOTS = [
   likes:"Sits on the north side of the point, facing NNE into Block Island Sound. It only breaks when a big E or NE swell (a nor'easter or a passing hurricane) wraps around the point. On those days S to SW wind, which wrecks the whole south shore, blows offshore here. That's why it's the call when everything else is blown out.",
   notes:"Needs a big swell to break at all. Rocky."}
 ];
+// Typical no-traffic drive from Rocky Point, minutes (Democrat Point includes the walk from Field 5)
+const HOME = "Rocky Point";
+const DRIVE = {atl:80, lbt:70, lido:65, jbw:60, tob:55, gil:50, dem:60, rm3:45, smp:30, cup:40, dwh:40, pon:50, shi:55, dit:110, ter:110, tur:115, nob:115};
+const WEST = ["atl","lbt","lido","jbw","tob","gil","dem","rm3"], EAST = ["smp","cup","dwh","pon","shi"];
+SPOTS.forEach(s => { s.drive = DRIVE[s.id]; s.side = s.far ? "montauk" : WEST.includes(s.id) ? "west" : "east"; });
+// Score adjusted for the drive: each extra hour behind the wheel costs about 0.8 points
+const driveAdj = (s, score) => score - Math.max(0, s.drive - 30) / 60 * 0.8;
+const fmtDrive = m => m >= 60 ? `${Math.floor(m/60)} hr${m % 60 ? " " + (m % 60) + " min" : ""}` : `${m} min`;
 const TIDE_NAMES = {"8516881":"East Rockaway Inlet","8516385":"Jones Inlet","8515186":"Fire Island CG Station","8515228":"Democrat Point","8513398":"Moriches Inlet","8512354":"Shinnecock Inlet","8510560":"Montauk"};
 
 const RATINGS = [
@@ -583,7 +604,7 @@ function render(){
     return `<div class="row">
       <button class="head" data-id="${s.id}" aria-expanded="${open}">
         <span class="rank">${n + 1}</span>
-        <span class="name"><b>${esc(s.name)} ${s.isNew ? '<span class="badge">New to you</span>' : ""}</b><span>${esc(s.area)}</span></span>
+        <span class="name"><b>${esc(s.name)} ${s.isNew ? '<span class="badge">New to you</span>' : ""}</b><span>${esc(s.area)} · ${fmtDrive(s.drive)} drive</span></span>
         <span class="pcell">${ratingPill(h.score)}</span>
         <span class="scell"><span class="size">${sizeText(h.total)}</span>
           <span class="cell"><span class="mono">${h.dom.h.toFixed(1)}ft ${Math.round(h.dom.T)}s</span> ${arrowSvg(h.dom.d, 12)} ${compass(h.dom.d)}<small>${h.dom.name.toLowerCase()}</small></span></span>
@@ -600,8 +621,93 @@ function render(){
     const id = b.dataset.id; OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); store.set("open", [...OPEN]); render();
   }));
 
+  renderEastWest(res, idx, rankIdx);
   renderWindows(res, idx);
   renderBoard(res);
+}
+
+// ---------- East or West from home ----------
+function bestOnSide(res, side, i){
+  let best = null;
+  res.forEach(r => {
+    if (r.spot.side !== side) return;
+    const h = r.hours[i], adj = driveAdj(r.spot, h.score);
+    if (!best || adj > best.adj) best = {r, h, adj};
+  });
+  return best;
+}
+function sideReasons(w, l, wSide){
+  const out = [];
+  const ws = w.r.spot, ls = l.r.spot;
+  if (w.h.wi.f - l.h.wi.f > 0.08)
+    out.push(`the wind is ${w.h.wi.label.toLowerCase()} at ${ws.name} but ${l.h.wi.label.toLowerCase()} at ${ls.name}`);
+  const dir = w.h.dom.d, dw = angDiff(dir, ws.facing), dl = angDiff(dir, ls.facing);
+  if (dl - dw > 10)
+    out.push(`the ${compass(dir)} swell lines up better with the ${wSide} beaches, which face ${compass(ws.facing)} instead of ${compass(ls.facing)}`);
+  const pref = +$("sizePref").value;
+  const sizeDiff = w.h.total - l.h.total;
+  if (sizeDiff > 1 && l.h.total / pref < 3) out.push(`it's about ${Math.round(sizeDiff)} ft bigger`);
+  if (sizeDiff < -1 && l.h.total / (pref * (ls.handles || 1)) > 7) out.push(`it's a more manageable size`);
+  if (w.h.td && l.h.td && tideFactor(w.h.td, ws.tidePref) - tideFactor(l.h.td, ls.tidePref) > 0.07) out.push(`the tide suits ${ws.name} better right then`);
+  if (ws.drive < ls.drive - 10) out.push(`it's a shorter drive (${fmtDrive(ws.drive)} vs ${fmtDrive(ls.drive)})`);
+  return out;
+}
+function renderEastWest(res, idx, rankIdx){
+  const W = bestOnSide(res, "west", rankIdx), E = bestOnSide(res, "east", rankIdx);
+  const t = res[0].hours[rankIdx].t;
+  const when = rankIdx === idx ? "right now" : `at first light (${dayName(t)} ${fmtHour(t)})`;
+  let call, text, winner;
+  if (Math.max(W.h.score, E.h.score) < 3){
+    winner = null; call = "Stay home";
+    text = `Neither direction is worth it ${when}. If you just want to get wet, ${E.r.spot.name} is the closest at ${fmtDrive(E.r.spot.drive)}.`;
+  } else if (Math.abs(W.adj - E.adj) < 0.4){
+    winner = W.r.spot.drive < E.r.spot.drive ? "west" : "east";
+    const pick = winner === "west" ? W : E;
+    call = winner === "west" ? "← Toss-up, lean West" : "Toss-up, lean East →";
+    text = `Both directions are about the same ${when}, so take the shorter drive: ${pick.r.spot.name} (${fmtDrive(pick.r.spot.drive)}).`;
+  } else {
+    winner = W.adj > E.adj ? "west" : "east";
+    const w = winner === "west" ? W : E, l = winner === "west" ? E : W;
+    const rs = sideReasons(w, l, winner);
+    call = winner === "west" ? "← Go West" : "Go East →";
+    text = `${w.r.spot.name} beats ${l.r.spot.name} ${when}${rs.length ? " because " + rs.slice(0, 3).join(", and ") : ", even after counting the drive"}.`;
+  }
+  const sideCard = (b, label, side) => `<div class="side ${winner === side ? "win" : ""}">
+      <span class="eyebrow">${label}</span>
+      <b>${esc(b.r.spot.name)}</b>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ratingPill(b.h.score)}<span class="mono">${sizeText(b.h.total)}</span></div>
+      <span class="muted" style="font-size:13px">${fmtDrive(b.r.spot.drive)} drive · ${b.h.wi.label} ${compass(b.h.wd)} ${Math.round(b.h.ws)} mph</span>
+    </div>`;
+  // 5-day outlook: which way wins each day (best daylight hour per side, drive-adjusted)
+  const days = [];
+  const seen = new Set();
+  res[0].hours.forEach((h, i) => {
+    if (i < idx || !h.day) return;
+    const k = h.t.toDateString(); if (seen.has(k)) return; seen.add(k); days.push(k);
+  });
+  const outlook = days.slice(0, 5).map(k => {
+    let bw = null, be = null;
+    res[0].hours.forEach((h, i) => {
+      if (i < idx || !h.day || h.t.toDateString() !== k) return;
+      const w = bestOnSide(res, "west", i), e = bestOnSide(res, "east", i);
+      if (!bw || w.adj > bw.adj) bw = w;
+      if (!be || e.adj > be.adj) be = e;
+    });
+    const top = Math.max(bw.h.score, be.h.score);
+    const d = new Date(k);
+    const label = d.toDateString() === new Date().toDateString() ? "Today" : dayName(d);
+    if (top < 3) return `<div class="day"><span class="muted">${label}</span><b class="muted">Skip</b><span class="muted">${top.toFixed(1)}</span></div>`;
+    const pick = Math.abs(bw.adj - be.adj) < 0.4 ? (bw.r.spot.drive < be.r.spot.drive ? bw : be) : (bw.adj > be.adj ? bw : be);
+    const dir = pick.r.spot.side === "west" ? "West" : "East";
+    return `<div class="day" style="border-color:${rcolor(pick.h.score)}" title="${esc(pick.r.spot.name)} ${fmtHour(pick.h.t)}"><span class="muted">${label}</span><b>${dir}</b><span>${esc(pick.r.spot.name.split(",")[0])}</span></div>`;
+  }).join("");
+  $("eastwest").innerHTML = `
+    <div class="eyebrow">From ${HOME}: east or west?</div>
+    <div class="call"><span class="dirword">${call}</span><p>${esc(text)}</p></div>
+    <div class="sides">${sideCard(W, "Best to the west · Robert Moses to Atlantic Beach", "west")}${sideCard(E, "Best to the east · Smith Point to Shinnecock", "east")}</div>
+    <div class="eyebrow" style="margin-top:2px">Which way, next 5 days</div>
+    <div class="days">${outlook}</div>
+    <p class="muted" style="margin:0;font-size:13px">Drive times are typical without traffic. Each extra hour of driving counts as a small penalty, so a slightly better wave far away won't beat a solid one close to home.</p>`;
 }
 
 function detail(r, idx, rankIdx){
