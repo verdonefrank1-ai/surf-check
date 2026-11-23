@@ -10,7 +10,7 @@
 /* Layout: one column field report. Verdict up top, ranked break list, then a 6-day board. */
 :root{
   --bg:#e9f0f1; --surface:#ffffff; --surface2:#f4f8f9; --ink:#0d2430; --muted:#587382; --line:#d2dee2;
-  --accent:#0a6e8a; --night:rgba(13,36,48,.07);
+  --accent:#0a6e8a; --night:rgba(13,36,48,.07); --scrim:rgba(8,24,32,.55);
   --r-flat:#a3b1b7; --r-poor:#d9604f; --r-pf:#eb9550; --r-fair:#e7c64e; --r-fg:#9bcb5c; --r-good:#33b071; --r-epic:#7c5fd8;
   --on-rating:#0d1a20;
   --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
@@ -67,6 +67,41 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .ew .day{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;display:flex;flex-direction:column;align-items:center;min-width:72px}
 .ew .day b{font:700 16px/1.1 var(--display)}
 @media (max-width:560px){.ew .sides{grid-template-columns:1fr}}
+.board button.c{all:unset;box-sizing:border-box;width:100%;cursor:pointer;border-radius:6px;padding:5px 4px;color:var(--on-rating);display:flex;flex-direction:column;line-height:1.15;text-align:center}
+.board button.c:hover{filter:brightness(1.08);box-shadow:0 0 0 2px var(--ink) inset}
+.board button.c:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.win{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+button.win:hover{border-color:var(--accent)}
+button.win:focus-visible,.ew button.day:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ew button.day{background:transparent;cursor:pointer;font:inherit;color:inherit}
+.ew button.day:hover{background:var(--surface2)}
+.sheet{position:fixed;inset:0;z-index:50;background:var(--scrim);overflow-y:auto;display:flex;justify-content:center;align-items:flex-start;
+  padding:calc(env(safe-area-inset-top,0px) + 20px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 20px) max(12px,env(safe-area-inset-left,0px))}
+.sheet[hidden]{display:none}
+.sheet .panel{background:var(--bg);color:var(--ink);width:100%;max-width:980px;border-radius:14px;border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.dvhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.dvhead h2{font-size:clamp(26px,4vw,34px)}
+.iconbtn{background:var(--surface);border:1px solid var(--line);border-radius:8px;width:40px;height:40px;font-size:18px;cursor:pointer;flex:none}
+.dvnav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dvnav button.ctl{cursor:pointer;font-weight:600}
+.dvnav button.ctl:disabled{opacity:.4;cursor:default}
+.dvnav select{max-width:220px}
+.dvsum{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.dvsum>div{flex:1 1 150px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.dvsum b{font:600 19px/1.15 var(--display)}
+.hourly{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.hourly table{border-collapse:collapse;width:100%;min-width:660px}
+.hourly th,.hourly td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:top}
+.hourly th{font:600 12px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface2)}
+.hourly td small{display:block;color:var(--muted);font-size:12px}
+.hourly tr.best td{background:var(--surface2)}
+.hourly tr.best td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.chips{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px}
+.chip{font-size:12px;line-height:1.2;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.fav{border-color:var(--r-good);color:var(--ink);font-weight:600}
+.chip.unfav{border-style:dashed}
+.wavebox{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.wavebox p{margin:0}
 .why{display:flex;flex-direction:column;gap:10px}
 .why h3{font-size:20px}
 .whycols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -105,7 +140,8 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .chartbox svg{display:block}
 .links{display:flex;flex-wrap:wrap;gap:14px;font-size:14px}
 @media (max-width:860px){
-  .row>button.head{grid-template-columns:28px minmax(0,1fr) auto;grid-template-areas:"r n p" "r s s" "r w w";row-gap:6px}
+  .row>button.head{grid-template-columns:28px minmax(0,1fr) auto;grid-template-areas:"r n p" "r s s" "r w w" "r c c";row-gap:6px}
+  .row .chips{grid-area:c;margin-top:0}
   .row .rank{grid-area:r;align-self:start}
   .row .name{grid-area:n}
   .row .pcell{grid-area:p}
@@ -151,6 +187,13 @@ section{display:flex;flex-direction:column;gap:10px}
           <option value="1.5">Overhead+ (5–10 ft)</option>
         </select>
       </label>
+      <label class="ctl" for="handPref">I like
+        <select id="handPref">
+          <option value="1" selected>Rights</option>
+          <option value="-1">Lefts</option>
+          <option value="0">Either way</option>
+        </select>
+      </label>
       <label class="ctl" for="quiet"><input type="checkbox" id="quiet"> Favor quieter spots</label>
       <button class="btn" id="refresh">Refresh</button>
     </div>
@@ -180,9 +223,10 @@ section{display:flex;flex-direction:column;gap:10px}
   </section>
 
   <section>
-    <div class="sechead"><h2>6-day board</h2><span class="muted" style="font-size:14px">Each cell: that day's best daylight hour at the break</span></div>
+    <div class="sechead"><h2>6-day board</h2><span class="muted" style="font-size:14px">Tap any cell for the full day, hour by hour. Each cell shows that day's best daylight hour. R = rights, L = lefts, + = mostly, L+R = even split</span></div>
     <div class="board" id="board"></div>
   </section>
+  <div class="sheet" id="dayview" hidden role="dialog" aria-modal="true" aria-labelledby="dvTitle"></div>
 
   <footer>
     <p><b>Where the numbers come from.</b> Waves, swell and water temperature: Open-Meteo Marine (model data, updated hourly). Wind and air: Open-Meteo weather models. Tides: NOAA tide predictions for the nearest ocean inlet station. "Now" is the model's estimate for the current hour, not a buoy reading.</p>
@@ -378,6 +422,7 @@ async function loadAll(){
 // Turn raw arrays into per-spot hourly conditions
 function compute(raw){
   const pref = +$("sizePref").value;
+  const hand = +$("handPref").value; // 1 = rights, -1 = lefts, 0 = either
   const times = raw.weather[0].hourly.time.map(parseLocal);
   const daily = raw.weather[0].daily;
   const suns = daily.time.map((d, i) => ({day: d, rise: parseLocal(daily.sunrise[i]), set: parseLocal(daily.sunset[i])}));
@@ -418,9 +463,11 @@ function compute(raw){
       const q = clamp(0.55 + 0.05 * dom.T, 0.75, 1.1) * (windDominated ? 0.88 : 1);
       const gustF = (wg - ws > 12 && wi.label !== "Offshore" && wi.label !== "Glassy") ? 0.94 : 1;
       let score = sizeScore(total, pref * (s.handles || 1)) * q * wi.f * gustF * tideFactor(td, s.tidePref);
+      const wave = waveShape({total, comps, dom, ws, wi, td}, s, pref);
+      score *= 1 + 0.07 * hand * wave.b; // nudge toward the direction you like
       if (total < 0.8) score = Math.min(score, 1);
       score = clamp(score, 0, 10);
-      return {t, total, comps, dom, ws, wd, wg, wi, td, score, day: isDay(t),
+      return {t, total, comps, dom, ws, wd, wg, wi, td, score, wave, day: isDay(t),
               temp: w.temperature_2m[i], sst: mval(si,"sea_surface_temperature",i), code: w.weather_code[i]};
     });
     return {spot: s, hours};
@@ -457,11 +504,19 @@ function tideText(td){
   const w = tideWord(td);
   return `${w[0].toUpperCase() + w.slice(1)} tide, ${td.rising ? "rising" : "dropping"} (${td.h.toFixed(1)} ft)`;
 }
+function waveChips(w){
+  if (w.shape === "Flat") return "";
+  const hand = +$("handPref").value;
+  const fav = hand !== 0 && Math.abs(w.b) >= 0.2 && Math.sign(w.b) === hand;
+  const unfav = hand !== 0 && Math.abs(w.b) >= 0.2 && Math.sign(w.b) === -hand;
+  return `<span class="chip ${fav ? "fav" : unfav ? "unfav" : ""}">${w.b > 0.2 ? "↱" : w.b < -0.2 ? "↰" : "⇄"} ${w.dir}</span><span class="chip">${w.shape}</span><span class="chip">${w.ride}</span>`;
+}
 function why(h){
   const parts = [];
   parts.push(`${h.wi.label.toLowerCase()} ${compass(h.wd)} wind at ${Math.round(h.ws)} mph`);
   parts.push(`${h.dom.h.toFixed(1)} ft at ${Math.round(h.dom.T)}s from the ${compass(h.dom.d)}`);
   if (h.td) parts.push(`${tideWord(h.td)} tide ${h.td.rising ? "rising" : "dropping"}`);
+  if (h.wave && h.wave.shape !== "Flat") parts.push(`${h.wave.dir.toLowerCase()}, ${h.wave.shape.toLowerCase()}`);
   return parts.join(", ");
 }
 
@@ -476,6 +531,14 @@ function analyze(s, h){
   else if (d <= 45) good.push(`${src} comes in at a good angle for a ${faceDir}-facing break.`);
   else if (d <= 80) bad.push(`${src} arrives ${Math.round(d)}° off this break's ${faceDir} aim, so it loses size and tends to run down the beach instead of peaking.`);
   else bad.push(s.wrap ? `${src} has to bend around the point to get here, so only part of it makes it in.` : `${src} is mostly blocked here, since this beach faces ${faceDir}.`);
+  // lefts vs rights, against what you like
+  const hp = +$("handPref").value;
+  if (h.wave && hp !== 0 && h.total >= 0.8){
+    const fav = hp > 0 ? "rights" : "lefts";
+    if (Math.abs(h.wave.b) < 0.2) good.push(`Even mix of lefts and rights, so you'll find ${fav}.`);
+    else if (Math.sign(h.wave.b) === hp) good.push(`${h.wave.dir} here, which is what you like.`);
+    else bad.push(`${h.wave.dir} here, so fewer ${fav}.`);
+  }
   // period
   const T = Math.round(h.dom.T);
   if (T >= 10) good.push(`${T}-second period means real groundswell: more power and cleaner lines${s.reef ? " that wrap and peel along the rocks" : " that focus on the sandbars"}.`);
@@ -522,6 +585,61 @@ function analyze(s, h){
     }
   }
   return {good, bad};
+}
+
+// ---------- wave character: lefts vs rights, shape, ride length ----------
+// How steep/punchy each break tends to be (0 mellow ... 1 heavy)
+const STEEP = {atl:0.6, lbt:0.6, lido:0.5, jbw:0.65, tob:0.5, gil:0.6, dem:0.6, rm3:0.5, smp:0.6, cup:0.7, dwh:0.7, pon:0.45, shi:0.95, dit:0.2, ter:0.8, tur:0.7, nob:0.6};
+// Signed angle of swell vs. the way the beach faces. Positive = swell from the surfer's right side
+// when looking out to sea (west side of a south-facing beach), so waves peel to the surfer's right.
+const signedOff = (dir, facing) => ((dir - facing) % 360 + 540) % 360 - 180;
+function waveShape(h, s, pref){
+  // energy-weighted lean: +1 all rights, -1 all lefts
+  let sw = 0, sb = 0;
+  h.comps.forEach(c => {
+    const sd = signedOff(c.d, s.facing), w = c.face * c.face;
+    sb += w * clamp(sd / 30, -1, 1); sw += w;
+  });
+  const b = sw ? sb / sw : 0;
+  const ang = Math.abs(signedOff(h.dom.d, s.facing));
+  const T = h.dom.T, steep = STEEP[s.id] ?? 0.5, eff = h.total / (pref * (s.handles || 1));
+  const L = h.wi.label, pos = h.td ? h.td.pos : 0.5;
+  const clean = L === "Offshore" || L === "Cross-offshore" || L === "Glassy";
+  const blown = (L === "Onshore" || L === "Cross-onshore") && h.ws > 12;
+  let H = steep + (T >= 10 ? 0.3 : T >= 8 ? 0.1 : -0.3)
+        + (L === "Offshore" || L === "Cross-offshore" ? 0.3 : L === "Glassy" ? 0.15 : L === "Cross-shore" ? -0.1 : -0.4)
+        + (pos < 0.35 ? 0.2 : pos > 0.75 ? -0.25 : 0)
+        + (eff >= 2.5 && eff <= 8 ? 0.1 : eff < 1.5 ? -0.3 : 0);
+  let shape, why;
+  if (h.total < 0.8){ shape = "Flat"; why = "Not enough swell to break."; }
+  else if (blown){ shape = "Choppy, disorganized"; why = `Strong ${L.toLowerCase()} wind breaks the waves up into bumpy, crumbly sections.`; }
+  else if (eff < 1.2){ shape = "Small and soft"; why = "Too small to get much push; slow, crumbly waves. Longboard size."; }
+  else if (!s.reef && ang < 7 && T >= 9 && eff > 4){ shape = "Closing out a lot"; why = "Big, long-period swell hitting the sandbars straight on tends to break all at once instead of peeling."; }
+  else if (!s.reef && pos > 0.85 && steep >= 0.6){ shape = "Shorebreak, dumpy"; why = "At high tide the waves skip the outer bars and dump hard on the steep beach."; }
+  else if (H >= 1.25){ shape = s.reef && eff > 4 ? "Heavy, thick and hollow" : "Hollow, barreling sections"; why = `${T >= 10 ? "Long-period swell" : "Solid swell"}${clean ? " with clean wind" : ""}${pos < 0.35 ? " on a lower tide" : ""} makes the waves pitch and throw${s.reef ? " over the rocks" : " on the sandbars"}.`; }
+  else if (H >= 0.85){ shape = "Punchy, makes sections"; why = "Enough power and shape for steep faces and good turns, with the odd quick barrel."; }
+  else if (H >= 0.5){ shape = "Peaky and fun"; why = "Rippable peaks without much hollowness."; }
+  else { shape = "Soft and mushy"; why = `${T < 8 ? "Short-period swell" : "The swell"}${pos > 0.75 ? " on a high tide" : ""}${!clean ? " with texture from the wind" : ""} gives slow, rolling waves.`; }
+  let ride;
+  if (/Closing|Choppy|Shorebreak|Flat/.test(shape)) ride = "Short rides";
+  else if (s.reef) ride = ang >= 10 && ang <= 70 ? "Long rides" : "Medium rides";
+  else if (ang < 7) ride = "Short rides";
+  else if (ang <= 40) ride = T >= 10 && clean ? "Long rides" : "Medium rides";
+  else ride = "Long, lined-up walls";
+  const a = Math.abs(b);
+  const side = b > 0 ? "rights" : "lefts";
+  const dir = h.total < 0.8 ? "—" : a < 0.2 ? "Even split (A-frames)" : a < 0.55 ? `Leaning ${side}` : `Mostly ${side}`;
+  const short = h.total < 0.8 ? "–" : a < 0.2 ? "L+R" : b > 0 ? (a < 0.55 ? "R" : "R+") : (a < 0.55 ? "L" : "L+");
+  return {b, dir, short, shape, why, ride, ang: signedOff(h.dom.d, s.facing)};
+}
+function dirExplain(h, s){
+  const sd = signedOff(h.dom.d, s.facing), side = sd > 0 ? "west" : "east";
+  const cw = compass(h.dom.d), fw = compass(s.facing);
+  if (Math.abs(sd) < 6) return `The main swell from the ${cw} is hitting this ${fw}-facing break almost straight on, so peaks break both ways.`;
+  // "west/east" wording only makes sense for the south-facing beaches
+  const southish = angDiff(s.facing, 180) < 50;
+  const from = southish ? `a bit ${side} of where the beach faces` : `${Math.round(Math.abs(sd))}° off where the break faces`;
+  return `The main swell comes from the ${cw}, ${from}, so waves peel ${sd > 0 ? "to your right as you ride in: rights" : "to your left as you ride in: lefts"}.`;
 }
 
 // ---------- render ----------
@@ -611,6 +729,7 @@ function render(){
         <span class="wcell"><span class="cell">${arrowSvg(h.wd, 12)} ${compass(h.wd)} <span class="mono">${Math.round(h.ws)}</span> mph<small>${h.wi.label}${h.wg - h.ws > 8 ? `, gusts ${Math.round(h.wg)}` : ""}</small></span>
           <span class="cell">${tideText(h.td)}<small>${CROWD_WORDS[cl]}</small></span>
           <span class="cell hide-sm">${crowdDots(cl)}</span></span>
+        <span class="chips">${waveChips(h.wave)}</span>
       </button>
       ${open ? detail(r, idx, rankIdx) : ""}
     </div>`;
@@ -622,6 +741,7 @@ function render(){
   }));
 
   renderEastWest(res, idx, rankIdx);
+  renderDayView(res);
   renderWindows(res, idx);
   renderBoard(res);
 }
@@ -699,7 +819,7 @@ function renderEastWest(res, idx, rankIdx){
     if (top < 3) return `<div class="day"><span class="muted">${label}</span><b class="muted">Skip</b><span class="muted">${top.toFixed(1)}</span></div>`;
     const pick = Math.abs(bw.adj - be.adj) < 0.4 ? (bw.r.spot.drive < be.r.spot.drive ? bw : be) : (bw.adj > be.adj ? bw : be);
     const dir = pick.r.spot.side === "west" ? "West" : "East";
-    return `<div class="day" style="border-color:${rcolor(pick.h.score)}" title="${esc(pick.r.spot.name)} ${fmtHour(pick.h.t)}"><span class="muted">${label}</span><b>${dir}</b><span>${esc(pick.r.spot.name.split(",")[0])}</span></div>`;
+    return `<button class="day" data-open="${pick.r.spot.id}|${k}" style="border-color:${rcolor(pick.h.score)}" title="${esc(pick.r.spot.name)} ${fmtHour(pick.h.t)}. Tap for the full day."><span class="muted">${label}</span><b>${dir}</b><span>${esc(pick.r.spot.name.split(",")[0])}</span></button>`;
   }).join("");
   $("eastwest").innerHTML = `
     <div class="eyebrow">From ${HOME}: east or west?</div>
@@ -757,24 +877,113 @@ function detail(r, idx, rankIdx){
                 .map(x => `${x.type === "H" ? "High" : "Low"} ${dayName(new Date(x.t))} ${fmtTime(new Date(x.t))} (${x.v.toFixed(1)} ft)`).join(" · ");
   const maps = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
   const prefWord = {lowmid:"low to mid tide", mid:"mid tide", incoming:"incoming tide"}[s.tidePref];
-  const rh = r.hours[rankIdx], a = analyze(s, rh);
-  const verdictWord = rh.score >= 6 ? "Why it's working" : rh.score >= 3 ? "Why it's so-so" : "Why it's not working";
-  const li = arr => arr.length ? arr.map(x => `<li>${esc(x)}</li>`).join("") : `<li class="muted">Nothing major.</li>`;
+  const rh = r.hours[rankIdx];
   return `<div class="detail">
-    <div class="why">
-      <h3>${verdictWord} ${rankIdx !== idx ? `<span class="muted" style="font-weight:500;font-size:15px">at ${fmtHour(rh.t)} ${dayName(rh.t)}</span>` : ""}</h3>
-      <div class="whycols">
-        <div><span class="eyebrow ok">Working for it</span><ul>${li(a.good)}</ul></div>
-        <div><span class="eyebrow no">Working against it</span><ul>${li(a.bad)}</ul></div>
-      </div>
-      <p><b>What this break likes, and why:</b> ${esc(s.likes)}</p>
-      <p class="muted" style="font-size:14px"><b>Quick version:</b> wind from the ${compass((s.facing + 180) % 360)}, swell from the ${compass(s.facing - 25)} to ${compass(s.facing + 25)}, ${prefWord}. ${esc(s.notes)}</p>
-    </div>
+    ${whyBlock(s, rh, rankIdx !== idx ? `at ${fmtHour(rh.t)} ${dayName(rh.t)}` : "")}
     <div class="chartbox">${svg}</div>
     <p class="muted" style="font-size:14px"><b>Now:</b> ${esc(swells)}<br><b>Tides (${esc(TIDE_NAMES[s.tide])}):</b> ${esc(tides || "n/a")}</p>
     <div class="links"><a href="${maps}" target="_blank" rel="noopener">Directions</a></div>
   </div>`;
 }
+
+function whyBlock(s, rh, sub){
+  const a = analyze(s, rh);
+  const prefWord = {lowmid:"low to mid tide", mid:"mid tide", incoming:"incoming tide"}[s.tidePref];
+  const verdictWord = rh.score >= 6 ? "Why it's working" : rh.score >= 3 ? "Why it's so-so" : "Why it's not working";
+  const li = arr => arr.length ? arr.map(x => `<li>${esc(x)}</li>`).join("") : `<li class="muted">Nothing major.</li>`;
+  return `
+    <div class="why">
+      <h3>${verdictWord} ${sub ? `<span class="muted" style="font-weight:500;font-size:15px">${esc(sub)}</span>` : ""}</h3>
+      <div class="whycols">
+        <div><span class="eyebrow ok">Working for it</span><ul>${li(a.good)}</ul></div>
+        <div><span class="eyebrow no">Working against it</span><ul>${li(a.bad)}</ul></div>
+      </div>
+      ${rh.wave.shape !== "Flat" ? `<div class="wavebox">
+        <span class="eyebrow">What the waves will be like</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${waveChips(rh.wave)}</div>
+        <p><b>Lefts or rights:</b> ${esc(dirExplain(rh, s))}${rh.comps.length > 1 && Math.abs(rh.wave.b) < 0.55 ? " A second swell from a different angle mixes in, which helps make A-frame peaks." : ""}</p>
+        <p><b>Wave type:</b> ${esc(rh.wave.why)} ${rh.wave.ride === "Long, lined-up walls" ? "The steep swell angle makes long walls that run down the beach; they can be fast and hard to stay ahead of." : rh.wave.ride === "Long rides" ? "The angle lets waves peel for a good distance." : rh.wave.ride === "Short rides" ? "Expect quick rides before the wave shuts down." : ""}</p>
+      </div>` : ""}
+      <p><b>What this break likes, and why:</b> ${esc(s.likes)}</p>
+      <p class="muted" style="font-size:14px"><b>Quick version:</b> wind from the ${compass((s.facing + 180) % 360)}, swell from the ${compass(s.facing - 25)} to ${compass(s.facing + 25)}, ${prefWord}. ${esc(s.notes)}</p>
+    </div>`;
+}
+
+// ---------- Day detail sheet (opened from the board, windows or the east/west days) ----------
+let DAYVIEW = null;
+function renderDayView(res){
+  const el = $("dayview");
+  if (!DAYVIEW){ el.hidden = true; document.body.style.overflow = ""; return; }
+  const r = res.find(x => x.spot.id === DAYVIEW.id); if (!r){ DAYVIEW = null; return renderDayView(res); }
+  const s = r.spot;
+  const allDays = [...new Set(r.hours.filter(h => h.day).map(h => h.t.toDateString()))];
+  const di = Math.max(0, allDays.indexOf(DAYVIEW.day));
+  const dayKey = allDays[di];
+  const hrs = r.hours.filter(h => h.day && h.t.toDateString() === dayKey);
+  const best = hrs.reduce((a,h) => h.score > a.score ? h : a, hrs[0]);
+  const good = hrs.filter(h => h.score >= best.score - 0.6);
+  const winTxt = `${fmtHour(good[0].t)}–${fmtHour(new Date(good[good.length-1].t.getTime() + 3600000))}`;
+  const dStart = new Date(dayKey).getTime(), dEnd = dStart + 86400000;
+  const tides = (DATA.tides[s.tide] || []).filter(x => x.t >= dStart && x.t < dEnd)
+    .map(x => `${x.type === "H" ? "High" : "Low"} ${fmtTime(new Date(x.t))} (${x.v.toFixed(1)} ft)`).join(" · ");
+  const cl = crowdLevel(s, best.t, best.score);
+  const opts = SPOTS.map(x => `<option value="${x.id}" ${x.id === s.id ? "selected" : ""}>${esc(x.name)}${x.far ? " (Montauk)" : ""}</option>`).join("");
+  const rows = hrs.map(h => `<tr class="${h === best ? "best" : ""}">
+      <td class="mono">${fmtHour(h.t)}</td>
+      <td><span class="pill" style="background:${rcolor(h.score)}">${rating(h.score).label}</span></td>
+      <td><b>${sizeText(h.total)}</b></td>
+      <td class="mono">${h.dom.h.toFixed(1)}ft ${Math.round(h.dom.T)}s ${compass(h.dom.d)}</td>
+      <td>${arrowSvg(h.wd, 12)} ${compass(h.wd)} <span class="mono">${Math.round(h.ws)}</span><small>${h.wi.label}</small></td>
+      <td>${h.td ? `${h.td.h.toFixed(1)} ft ${h.td.rising ? "↑" : "↓"}` : "–"}<small>${h.td ? tideWord(h.td) : ""}</small></td>
+      <td>${h.wave.dir}<small>${h.wave.shape}</small></td>
+    </tr>`).join("");
+  el.innerHTML = `<div class="panel" role="document">
+    <div class="dvhead">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <span class="eyebrow">${dayFull(best.t)} · ${fmtDrive(s.drive)} from ${HOME}</span>
+        <h2 id="dvTitle">${esc(s.name)}</h2>
+      </div>
+      <button class="iconbtn" data-dv="close" aria-label="Close">✕</button>
+    </div>
+    <div class="dvnav">
+      <button class="ctl" data-dv="prev" ${di === 0 ? "disabled" : ""}>‹ ${di > 0 ? dayName(new Date(allDays[di-1])) : ""}</button>
+      <label class="ctl" for="dvSpot">Break <select id="dvSpot">${opts}</select></label>
+      <button class="ctl" data-dv="next" ${di >= allDays.length - 1 ? "disabled" : ""}>${di < allDays.length - 1 ? dayName(new Date(allDays[di+1])) : ""} ›</button>
+    </div>
+    <div class="dvsum">
+      <div><span class="eyebrow">Best window</span><b>${winTxt}</b></div>
+      <div><span class="eyebrow">Peak</span>${ratingPill(best.score)} <b class="mono">${sizeText(best.total)}</b></div>
+      <div><span class="eyebrow">Crowd</span><b>${CROWD_WORDS[cl]}</b></div>
+      <div><span class="eyebrow">Tides</span><span style="font-size:14px">${esc(tides || "n/a")}</span></div>
+    </div>
+    ${whyBlock(s, best, `at ${fmtHour(best.t)}, the best hour`)}
+    <div class="hourly"><table>
+      <thead><tr><th>Time</th><th>Rating</th><th>Surf</th><th>Swell</th><th>Wind</th><th>Tide</th><th>Waves</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="links"><a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}" target="_blank" rel="noopener">Directions</a></div>
+  </div>`;
+  el.hidden = false; document.body.style.overflow = "hidden";
+  $("dvSpot").addEventListener("change", e => { DAYVIEW = {id: e.target.value, day: dayKey}; render(); });
+  el.dataset.days = JSON.stringify(allDays); el.dataset.di = di;
+}
+document.addEventListener("click", e => {
+  const dv = e.target.closest("[data-dv]");
+  if (dv){
+    const days = JSON.parse($("dayview").dataset.days || "[]"), di = +$("dayview").dataset.di;
+    if (dv.dataset.dv === "close") DAYVIEW = null;
+    else if (dv.dataset.dv === "prev" && di > 0) DAYVIEW.day = days[di - 1];
+    else if (dv.dataset.dv === "next" && di < days.length - 1) DAYVIEW.day = days[di + 1];
+    render(); return;
+  }
+  if (e.target === $("dayview")){ DAYVIEW = null; render(); return; }
+  const o = e.target.closest("[data-open]");
+  if (o){
+    const [id, day] = o.dataset.open.split("|");
+    DAYVIEW = {id, day}; render();
+    const p = $("dayview"); p.scrollTop = 0; const btn = p.querySelector('[data-dv="close"]'); if (btn) btn.focus();
+  }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && DAYVIEW){ DAYVIEW = null; render(); } });
 
 function dayBests(r){
   // best daylight hour per calendar day
@@ -809,12 +1018,12 @@ function renderWindows(res, idx){
   // keep variety: max 2 windows per break
   const per = {}, top = [];
   for (const w of wins){ if ((per[w.r.spot.id] = (per[w.r.spot.id] || 0) + 1) <= 2) top.push(w); if (top.length >= 8) break; }
-  $("windows").innerHTML = top.length ? top.map(w => `<div class="win">
+  $("windows").innerHTML = top.length ? top.map(w => `<button class="win" data-open="${w.r.spot.id}|${w.peak.t.toDateString()}">
       <span class="eyebrow">${dayFull(w.peak.t)} · ${fmtHour(w.start)}–${fmtHour(w.end)}</span>
       <b>${esc(w.r.spot.name)} ${w.r.spot.far ? '<span class="badge">Montauk drive</span>' : ""}</b>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ratingPill(w.peak.score)}<span class="mono">${sizeText(w.peak.total)}</span></div>
       <span class="muted" style="font-size:13px">${esc(why(w.peak))} · ${CROWD_WORDS[w.cl]}</span>
-    </div>`).join("") : `<div class="win"><b>Nothing above Fair in the next 5 days</b><span class="muted">The board below shows the best of what's out there.</span></div>`;
+    </button>`).join("") : `<div class="win"><b>Nothing above Fair in the next 5 days</b><span class="muted">The board below shows the best of what's out there.</span></div>`;
 }
 
 function renderBoard(res){
@@ -829,7 +1038,7 @@ function renderBoard(res){
     html += `<tr><td class="sp">${esc(r.spot.name)}</td>${days.map(d => {
       const h = b.get(d.toDateString());
       if (!h) return `<td class="muted">–</td>`;
-      return `<td><div class="c" style="background:${rcolor(h.score)}" title="${rating(h.score).label} ${h.score.toFixed(1)} · ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph"><b>${sizeText(h.total)}</b><span>${fmtHour(h.t)} · ${compass(h.wd)} ${Math.round(h.ws)}</span></div></td>`;
+      return `<td><button class="c" data-open="${r.spot.id}|${d.toDateString()}" style="background:${rcolor(h.score)}" title="${rating(h.score).label} ${h.score.toFixed(1)} · ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph. Tap for the full day."><b>${sizeText(h.total)}</b><span>${fmtHour(h.t)} · ${compass(h.wd)} ${Math.round(h.ws)} · ${h.wave.short}</span></button></td>`;
     }).join("")}</tr>`;
   });
   html += `</tbody></table>`;
@@ -851,8 +1060,9 @@ async function refresh(){
   btn.disabled = false; btn.textContent = "Refresh";
   render();
 }
-try { const p = store.get("prefs"); if (p){ $("sizePref").value = p.size; $("quiet").checked = !!p.quiet; } } catch(e){}
-const savePrefs = () => store.set("prefs", {size: $("sizePref").value, quiet: $("quiet").checked});
+try { const p = store.get("prefs"); if (p){ $("sizePref").value = p.size; $("quiet").checked = !!p.quiet; if (p.hand != null) $("handPref").value = p.hand; } } catch(e){}
+const savePrefs = () => store.set("prefs", {size: $("sizePref").value, quiet: $("quiet").checked, hand: $("handPref").value});
+$("handPref").addEventListener("change", () => { savePrefs(); render(); });
 $("sizePref").addEventListener("change", () => { savePrefs(); render(); });
 $("quiet").addEventListener("change", () => { savePrefs(); render(); });
 $("refresh").addEventListener("click", refresh);
