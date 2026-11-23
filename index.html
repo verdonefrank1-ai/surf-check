@@ -391,8 +391,8 @@ const SPOTS = [
  {id:"pon",  name:"Ponquogue", area:"Dune Road · Hampton Bays", lat:40.836, lon:-72.500, facing:156, tide:"8512354", tidePref:"mid", crowd:2, gain:1.0, handles:1.0,
   likes:"SSE-facing beach just west of Shinnecock Inlet. It takes E to S swell, NW wind is offshore, and it's usually mellower than the inlet on the same swell. Mid tide works best.",
   notes:"Less competitive than the inlet."},
- {id:"bwl",  name:"The Bowl", area:"Dune Road · east end of Ponquogue, by the Shinnecock west jetty", lat:40.840, lon:-72.480, facing:160, tide:"8512354", tidePref:"incoming", crowd:2, gain:1.08, handles:1.1,
-  likes:"A peak at the very end of Dune Road, where the Shinnecock Inlet's west jetty and the inlet shoal bend the swell into a hollow, ledgey wave over sand with some rock. It needs a solid SSE swell, likes NW to NNW wind, and is best on the rising tide toward mid to high. It gets powerful and hollow fast once it has size.",
+ {id:"bwl",  name:"The Bowl", area:"Dune Road · east end of Ponquogue, by the Shinnecock west jetty", lat:40.840, lon:-72.480, facing:165, tide:"8512354", tidePref:"incoming", crowd:2, gain:0.7, handles:1.1, minDir:155,
+  likes:"A peak at the very end of Dune Road, tucked against the Shinnecock Inlet's west jetty. The inlet's offshore sand shoal and the jetty block E and SE swell, so on a typical SE swell it can be close to flat while I Road and K Road are working. It needs a solid SSE to S swell to get in; then the shoal bends it into a hollow, ledgey wave over sand with some rock. NW to NNW wind is offshore, and the rising tide toward mid to high is best.",
   notes:"Some localism, rips along the jetty and buoys nearby. Intermediate to advanced. Free parking at the end of Dune Road."},
  {id:"shi",  name:"Shinnecock Inlet, east jetty", area:"Dune Road · Southampton", lat:40.839, lon:-72.474, facing:158, tide:"8512354", tidePref:"lowmid", crowd:3, gain:1.15, handles:1.1, isNew:true,
   likes:"The east jetty and the inlet's sand shoal combine to make a defined, powerful peak instead of shifting beach-break peaks, so it gets bigger and hollower than the beaches nearby. It lines up best with S to SE swell and NW wind. Low to mid tide makes it hollow; high tide softens it.",
@@ -616,7 +616,9 @@ function compute(raw){
         const h = mval(si,"wave_height",i) || 0;
         comps.push({name:"Waves", h, T: mval(si,"wave_period",i) || 5, d: mval(si,"wave_direction",i) || s.facing});
       }
-      comps.forEach(c => c.face = c.h * periodFactor(c.T) * exposure(c.d, s.facing, s.wrap) * s.gain);
+      // minDir: sheltered spots lose most of any swell that comes from further east than this
+      const shelter = d => !s.minDir || d >= s.minDir ? 1 : Math.max(0.25, 1 - (s.minDir - d) / 25 * 0.85);
+      comps.forEach(c => c.face = c.h * periodFactor(c.T) * exposure(c.d, s.facing, s.wrap) * shelter(c.d) * s.gain);
       const total = Math.sqrt(comps.reduce((a,c) => a + c.face * c.face, 0));
       const dom = comps.reduce((a,c) => c.face > a.face ? c : a, comps[0]);
       const windDominated = dom.name === "Wind swell";
@@ -709,6 +711,11 @@ function analyze(s, h){
   if (h.paddle && h.total >= 0.8){
     if (h.paddle.d < 2) good.push("Easy paddle out.");
     else if (h.paddle.d >= 6) bad.push(`${h.paddle.label} paddle out: ${h.paddle.reasons[0].replace(/\.$/, "").toLowerCase()}.`);
+  }
+  // spots tucked behind an inlet shoal or jetty that need a more southerly swell
+  if (s.minDir && h.total >= 0.3){
+    if (h.dom.d < s.minDir - 4) bad.push(`The swell is from the ${compass(h.dom.d)}, too far east for this spot. The inlet shoal and jetty block most of it, so it needs SSE to S swell to break properly.`);
+    else good.push(`The ${compass(h.dom.d)} swell angle gets past the inlet shoal, which this spot needs.`);
   }
   // period
   const T = Math.round(h.dom.T);
