@@ -391,8 +391,8 @@ const SPOTS = [
  {id:"irr",  name:"I Road", area:"Dune Road · Hampton Bays lettered roads, east of Ponquogue", lat:40.839, lon:-72.487, facing:160, tide:"8512354", tidePref:"mid", crowd:1, gain:0.98, handles:0.95,
   likes:"One of the lettered side roads off Dune Road in Hampton Bays, between Ponquogue and the inlet. It's a sandbar beach break with rights and lefts, facing SSE. It takes E to S swell and NW wind is offshore. It works on the same SE swells that leave The Bowl flat next door, and the bars decide how good it is from week to week.",
   notes:"Tiny parking areas off Dune Road; check the signs. Usually only a few people out."},
- {id:"bwl",  name:"The Bowl", area:"Dune Road · east end of Ponquogue, by the Shinnecock west jetty", lat:40.840, lon:-72.480, facing:165, tide:"8512354", tidePref:"incoming", crowd:2, gain:0.62, handles:1.1, minDir:155,
-  likes:"A peak at the very end of Dune Road, tucked against the Shinnecock Inlet's west jetty. The inlet's offshore sand shoal and the jetty block E and SE swell, so on a typical SE swell it can be close to flat while I Road and K Road are working. It needs a solid SSE to S swell to get in; then the shoal bends it into a hollow, ledgey wave over sand with some rock. NW to NNW wind is offshore, and the rising tide toward mid to high is best.",
+ {id:"bwl",  name:"The Bowl", area:"Dune Road · east end of Ponquogue, by the Shinnecock west jetty", lat:40.840, lon:-72.480, facing:165, tide:"8512354", tidePref:"incoming", crowd:2, gain:0.62, handles:1.1, minDir:155, bias:0.6,
+  likes:"A peak at the very end of Dune Road, tucked against the Shinnecock Inlet's west jetty. The inlet's offshore sand shoal and the jetty block E and SE swell, so on a typical SE swell it can be close to flat while I Road and K Road are working. It needs a solid SSE to S swell to get in; then the shoal bends it into a hollow, ledgey wave over sand with some rock. The swell wraps in off the shoal and peels toward the jetty, so it favors rights. NW to NNW wind is offshore, and the rising tide toward mid to high is best.",
   notes:"Some localism, rips along the jetty and buoys nearby. Intermediate to advanced. Free parking at the end of Dune Road."},
  {id:"shi",  name:"Shinnecock Inlet, east jetty", area:"Dune Road · Southampton", lat:40.839, lon:-72.474, facing:158, tide:"8512354", tidePref:"lowmid", crowd:3, gain:1.15, handles:1.1, isNew:true,
   likes:"The east jetty and the inlet's sand shoal combine to make a defined, powerful peak instead of shifting beach-break peaks, so it gets bigger and hollower than the beaches nearby. It lines up best with S to SE swell and NW wind. Low to mid tide makes it hollow; high tide softens it.",
@@ -778,7 +778,9 @@ function waveShape(h, s, pref){
     const sd = signedOff(c.d, s.facing), w = c.face * c.face;
     sb += w * clamp(sd / 30, -1, 1); sw += w;
   });
-  const b = sw ? sb / sw : 0;
+  // bias: spots where a jetty or shoal bends the swell so it peels one way regardless of angle (+ = rights)
+  const b0 = sw ? sb / sw : 0;
+  const b = s.bias ? clamp(s.bias + 0.35 * b0, -1, 1) : b0;
   const ang = Math.abs(signedOff(h.dom.d, s.facing));
   const T = h.dom.T, steep = STEEP[s.id] ?? 0.5, eff = h.total / (pref * (s.handles || 1));
   const L = h.wi.label, pos = h.td ? h.td.pos : 0.5;
@@ -878,6 +880,7 @@ function paddleOut(h, s){
 function dirExplain(h, s){
   const sd = signedOff(h.dom.d, s.facing), side = sd > 0 ? "west" : "east";
   const cw = compass(h.dom.d), fw = compass(s.facing);
+  if (s.bias) return `The jetty and inlet shoal bend the ${cw} swell so it peels toward the jetty, which mostly makes ${s.bias > 0 ? "rights" : "lefts"} here whatever the swell angle.`;
   if (Math.abs(sd) < 6) return `The main swell from the ${cw} is hitting this ${fw}-facing break almost straight on, so peaks break both ways.`;
   // "west/east" wording only makes sense for the south-facing beaches
   const southish = angDiff(s.facing, 180) < 50;
