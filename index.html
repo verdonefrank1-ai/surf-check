@@ -50,6 +50,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .strip>div{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .strip .v{font:600 20px/1.1 var(--display)}
 .strip .s{font-size:13px;color:var(--muted)}
+.strip .stripnote{background:var(--surface2)}
 
 .verdict{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:grid;grid-template-columns:1fr 1fr 0.8fr;gap:18px}
 .verdict>div{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -63,7 +64,15 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .ofrm input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .obtns{display:flex;flex-wrap:wrap;gap:8px}
 .obtns button.ctl{cursor:pointer;font-weight:600}
-#originMsg,.choices{flex-basis:100%}
+#originMsg,.choices,.whensum{flex-basis:100%}
+.whensum{display:flex;flex-direction:column;gap:6px;font-size:15px}
+.whensum:empty{display:none}
+.whensum .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.whensum .top b.nm{font:700 20px/1.1 var(--display)}
+.whensum p{margin:0}
+.whensum .alts{display:flex;flex-wrap:wrap;gap:6px}
+.whensum .alts span{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
+.whensum .warn{color:var(--r-poor);font-weight:600}
 .choices{display:flex;flex-wrap:wrap;gap:6px}
 .choices button{font:inherit;font-size:14px;cursor:pointer;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--ink)}
 .choices button:hover{border-color:var(--accent)}
@@ -230,6 +239,15 @@ section{display:flex;flex-direction:column;gap:10px}
     </div>
     <div id="originMsg" class="muted" style="font-size:14px" hidden></div>
     <div id="originChoices" class="choices" hidden></div>
+  </div>
+  <div class="origin when" id="whenBar">
+    <div class="ocur"><span class="eyebrow">When are you going?</span><b id="whenName">Right now</b></div>
+    <div class="obtns">
+      <label class="ctl" for="whenDay">Day <select id="whenDay"></select></label>
+      <label class="ctl" for="whenHour">Time <select id="whenHour"></select></label>
+      <button class="ctl" id="whenNow" type="button" hidden>Back to now</button>
+    </div>
+    <div id="whenSum" class="whensum"></div>
   </div>
   <div class="ew" id="eastwest"></div>
   <div class="strip" id="strip"></div>
@@ -462,6 +480,10 @@ const tideWord = td => !td ? "" : (td.pos < 0.2 ? "low" : td.pos > 0.8 ? "high" 
 // ---------- data ----------
 let DATA = null;           // raw fetched data
 let OPEN = new Set(store.get("open") || []);
+let WHEN = null;           // {day: dateString, hour: 0-23} from the "When are you going?" picker; null = now
+let WHEN_LABEL = "";
+const relDay = d => { const t = new Date(); if (d.toDateString() === t.toDateString()) return "Today";
+  t.setDate(t.getDate() + 1); return d.toDateString() === t.toDateString() ? "Tomorrow" : dayName(d) + " " + (d.getMonth()+1) + "/" + d.getDate(); };
 
 async function getJSON(url){
   const r = await fetch(url);
@@ -794,25 +816,41 @@ function render(){
   // When it's dark, rank the next daylight hour instead
   let rankIdx = idx;
   if (!nowIsDay){ const n = res[0].hours.findIndex((h,i) => i > idx && h.day); if (n > 0) rankIdx = n; }
+  // A session time picked in "When are you going?" overrides "now"
+  let planIdx = -1;
+  if (WHEN){
+    const cand = whenHours(res, idx).filter(o => o.h.t.toDateString() === WHEN.day);
+    if (!cand.length) WHEN = null;
+    else {
+      const gap = o => Math.abs(o.h.t.getHours() - WHEN.hour);
+      const pick = cand.reduce((a, o) => gap(o) < gap(a) ? o : a);
+      planIdx = pick.i; WHEN.hour = pick.h.t.getHours();
+    }
+  }
+  const planned = planIdx >= 0;
+  if (planned) rankIdx = planIdx;
   const rankT = res[0].hours[rankIdx].t;
+  WHEN_LABEL = planned ? `${relDay(rankT)} at ${fmtHour(rankT)}` : "";
   const rankVal = r => (useDrive() ? driveAdj(r.spot, r.hours[rankIdx].score) : r.hours[rankIdx].score) - (quiet ? 0.7 * (crowdLevel(r.spot, rankT, r.hours[rankIdx].score) - 1) : 0);
   const ranked = res.filter(r => !r.spot.far).sort((a,b) => rankVal(b) - rankVal(a));
   const montauk = res.filter(r => r.spot.far).sort((a,b) => b.hours[rankIdx].score - a.hours[rankIdx].score);
   if (store.get("open") === null && !OPEN.size){ OPEN.add(ranked[0].spot.id); store.set("open", [...OPEN]); }
 
   $("updated").textContent = `Data pulled ${fmtTime(new Date(DATA.fetched))} · ${dayFull(now)}`;
-  $("listTitle").textContent = nowIsDay ? "Breaks ranked right now" : `Breaks ranked for first light, ${dayName(rankT)} ${fmtHour(rankT)}`;
+  $("listTitle").textContent = planned ? `Breaks ranked for ${WHEN_LABEL}` : nowIsDay ? "Breaks ranked right now" : `Breaks ranked for first light, ${dayName(rankT)} ${fmtHour(rankT)}`;
 
   // Conditions strip (offshore, using the Fire Island area as the regional read)
-  const ref = res.find(r => r.spot.id === "rm3").hours[idx];
+  const si = planned ? rankIdx : idx, siT = res[0].hours[si].t;
+  const ref = res.find(r => r.spot.id === "rm3").hours[si];
   const sstF = ref.sst != null ? ref.sst * 9/5 + 32 : null;
   const sun = DATA.weather[0].daily;
-  const todayRise = parseLocal(sun.sunrise[0]), todaySet = parseLocal(sun.sunset[0]);
+  const sunI = Math.max(0, sun.time.findIndex(d => parseLocal(d + "T12:00").toDateString() === siT.toDateString()));
+  const todayRise = parseLocal(sun.sunrise[sunI]), todaySet = parseLocal(sun.sunset[sunI]);
   const sw = ref.comps.find(c => c.name === "Swell") || ref.dom;
   let nextTide = "";
   const fiTides = DATA.tides["8515186"];
-  if (fiTides){ const n = fiTides.find(x => x.t > now.getTime()); if (n) nextTide = `${n.type === "H" ? "High" : "Low"} ${fmtTime(new Date(n.t))}`; }
-  $("strip").innerHTML = [
+  if (fiTides){ const n = fiTides.find(x => x.t > siT.getTime()); if (n) nextTide = `${n.type === "H" ? "High" : "Low"} ${planned && new Date(n.t).toDateString() !== siT.toDateString() ? dayName(new Date(n.t)) + " " : ""}${fmtTime(new Date(n.t))}`; }
+  $("strip").innerHTML = (planned ? `<div class="stripnote"><span class="eyebrow">Conditions for</span><span class="v">${esc(WHEN_LABEL)}</span><span class="s">Fire Island area</span></div>` : "") + [
     ["Main swell", `${sw.h.toFixed(1)} ft @ ${Math.round(sw.T)}s`, `from ${compass(sw.d)} (${Math.round(sw.d)}°) offshore`],
     ["Wind", `${arrowSvg(ref.wd)} ${compass(ref.wd)} ${Math.round(ref.ws)} mph`, `gusts ${Math.round(ref.wg)} · ${ref.wi.label.toLowerCase()} at Fire Island`],
     ["Water", sstF != null ? `${Math.round(sstF)}°F` : "n/a", wetsuit(sstF)],
@@ -828,7 +866,7 @@ function render(){
   const goLine = bh.score >= 6 ? "Worth the drive." : bh.score >= 4.5 ? "Surfable. Good enough if you've got the itch." : bh.score >= 3 ? "Marginal. Probably a longboard or skip it." : "Not worth it right now.";
   $("verdict").innerHTML = `
     <div>
-      <span class="eyebrow">${nowIsDay ? "Best call now" : "Best call at first light"}</span>
+      <span class="eyebrow">${planned ? `Best call · ${esc(WHEN_LABEL)}` : nowIsDay ? "Best call now" : "Best call at first light"}</span>
       <span class="big">${esc(best.spot.name)}</span>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ratingPill(bh.score)}<b class="mono">${sizeText(bh.total)}</b></div>
       <p>${goLine} ${esc(why(bh)).replace(/^./, c => c.toUpperCase())}.</p>
@@ -879,11 +917,80 @@ function render(){
     const id = b.dataset.id; OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); store.set("open", [...OPEN]); render();
   }));
 
+  renderWhen(res, idx, rankIdx, planned, ranked, rankVal);
   renderEastWest(res, idx, rankIdx);
   renderDayView(res);
   renderWindows(res, idx);
   renderBoard(res);
 }
+
+// ---------- "When are you going?" picker ----------
+const WHEN_FIRST = 4, WHEN_LAST = 20; // pickable hours, 4 AM to 8 PM
+function whenHours(res, idx){
+  return res[0].hours.map((h, i) => ({h, i})).filter(o => o.i >= idx && o.h.t.getHours() >= WHEN_FIRST && o.h.t.getHours() <= WHEN_LAST);
+}
+const clock = d => { const h = d.getHours(); return (h % 12 || 12) + (h < 12 ? " AM" : " PM"); };
+function sunFor(d){
+  const sun = DATA.weather[0].daily;
+  const i = sun.time.findIndex(x => parseLocal(x + "T12:00").toDateString() === d.toDateString());
+  return i < 0 ? null : {rise: parseLocal(sun.sunrise[i]), set: parseLocal(sun.sunset[i])};
+}
+function renderWhen(res, idx, rankIdx, planned, ranked){
+  const opts = whenHours(res, idx);
+  const days = [...new Set(opts.map(o => o.h.t.toDateString()))];
+  const dSel = $("whenDay"), hSel = $("whenHour");
+  dSel.innerHTML = `<option value="">Right now</option>` + days.map(k => `<option value="${k}">${esc(relDay(new Date(k)))}</option>`).join("");
+  dSel.value = planned ? WHEN.day : "";
+  hSel.closest("label").hidden = !planned;
+  $("whenNow").hidden = !planned;
+  if (!planned){
+    $("whenName").textContent = rankIdx === idx ? "Right now" : `First light, ${fmtHour(res[0].hours[rankIdx].t)}`;
+    $("whenSum").innerHTML = ""; return;
+  }
+  hSel.innerHTML = opts.filter(o => o.h.t.toDateString() === WHEN.day)
+    .map(o => `<option value="${o.h.t.getHours()}">${clock(o.h.t)}${o.h.day ? "" : " (dark)"}</option>`).join("");
+  hSel.value = String(WHEN.hour);
+  $("whenName").textContent = WHEN_LABEL;
+
+  const t = res[0].hours[rankIdx].t, sun = sunFor(t);
+  const top = ranked[0], th = top.hours[rankIdx];
+  const val = (r, i) => useDrive() ? driveAdj(r.spot, r.hours[i].score) : r.hours[i].score;
+  let warn = "";
+  if (sun && !res[0].hours[rankIdx].day)
+    warn = t < sun.rise ? `That's before sunrise (${fmtTime(sun.rise)}). Conditions are shown, but you'll be paddling out in the dark.`
+                        : `That's after sunset (${fmtTime(sun.set)}).`;
+  // is there a clearly better hour the same day?
+  let better = null;
+  opts.forEach(o => {
+    if (o.h.t.toDateString() !== WHEN.day || !o.h.day || o.i === rankIdx) return;
+    ranked.forEach(r => { const v = val(r, o.i); if (!better || v > better.v) better = {r, i: o.i, v}; });
+  });
+  const betterHint = better && better.v - val(top, rankIdx) >= 0.8
+    ? `<p><button class="ctl" type="button" data-when-hour="${res[0].hours[better.i].t.getHours()}" style="cursor:pointer;font-weight:600">Better that day: ${clock(res[0].hours[better.i].t)} at ${esc(better.r.spot.name)} (${rating(better.r.hours[better.i].score).label}, ${better.r.hours[better.i].score.toFixed(1)}). Switch</button></p>` : "";
+  const alts = ranked.slice(1, 4).map(r => `<span>${esc(r.spot.name.split(",")[0])} · ${rating(r.hours[rankIdx].score).label} ${r.hours[rankIdx].score.toFixed(1)} · ${fmtDrive(r.spot.drive)}</span>`).join("");
+  const goLine = th.score >= 6 ? "Worth going." : th.score >= 4.5 ? "Surfable." : th.score >= 3 ? "Marginal at best." : "Nothing is really working then.";
+  $("whenSum").innerHTML = `
+    ${warn ? `<p class="warn">${esc(warn)}</p>` : ""}
+    <div class="top"><span class="eyebrow">Best place to go</span></div>
+    <div class="top"><b class="nm">${esc(top.spot.name)}</b>${ratingPill(th.score)}<b class="mono">${sizeText(th.total)}</b><span class="muted">${fmtDrive(top.spot.drive)} drive</span></div>
+    <div class="top">${waveChips(th.wave)}${paddleChip(th.paddle)}</div>
+    <p>${goLine} ${esc(why(th)).replace(/^./, c => c.toUpperCase())}.</p>
+    ${alts ? `<div class="alts"><span class="muted" style="background:none;border:0;padding:3px 0">Next best:</span>${alts}</div>` : ""}
+    ${betterHint}
+    <p class="muted" style="font-size:13px">The rest of the page (east or west, the ranked list and the conditions strip) is now set to ${esc(WHEN_LABEL.replace(/^Today/, "today").replace(/^Tomorrow/, "tomorrow"))}. Tap a break below for the full breakdown.</p>`;
+}
+$("whenDay").addEventListener("change", e => {
+  const v = e.target.value;
+  const saved = store.get("whenHour");
+  WHEN = v ? {day: v, hour: saved != null ? saved : 7} : null;
+  render();
+});
+$("whenHour").addEventListener("change", e => { if (!WHEN) return; WHEN.hour = +e.target.value; store.set("whenHour", WHEN.hour); render(); });
+$("whenNow").addEventListener("click", () => { WHEN = null; render(); });
+$("whenSum").addEventListener("click", e => {
+  const b = e.target.closest("[data-when-hour]"); if (!b || !WHEN) return;
+  WHEN.hour = +b.dataset.whenHour; render();
+});
 
 // ---------- East or West from home ----------
 function bestOnSide(res, side, i){
@@ -916,7 +1023,7 @@ function sideReasons(w, l, wSide){
 function renderEastWest(res, idx, rankIdx){
   let W = bestOnSide(res, "west", rankIdx), E = bestOnSide(res, "east", rankIdx);
   const t = res[0].hours[rankIdx].t;
-  const when = rankIdx === idx ? "right now" : `at first light (${dayName(t)} ${fmtHour(t)})`;
+  const when = WHEN_LABEL ? `for ${WHEN_LABEL.replace(/^Today/, "today").replace(/^Tomorrow/, "tomorrow")}` : rankIdx === idx ? "right now" : `at first light (${dayName(t)} ${fmtHour(t)})`;
   const oneWay = !W || !E; // every break is on one side of you (e.g. leaving from the city)
   const oneSide = !W ? "east" : "west";
   if (oneWay){
@@ -1030,7 +1137,7 @@ function detail(r, idx, rankIdx){
                           else if (h.t.getHours() % 6 === 0) svg += `<text x="${33 + i*12}" y="${H - 2}" font-size="10" fill="var(--muted)">${fmtHour(h.t)}</text>`; });
   svg += `</svg>`;
 
-  const cur = r.hours[idx];
+  const cur = r.hours[WHEN_LABEL ? rankIdx : idx];
   const swells = cur.comps.map(c => `${c.name}: ${c.h.toFixed(1)} ft @ ${Math.round(c.T)}s ${compass(c.d)}`).join(" · ");
   const tides = (DATA.tides[s.tide] || []).filter(x => x.t > Date.now()).slice(0, 4)
                 .map(x => `${x.type === "H" ? "High" : "Low"} ${dayName(new Date(x.t))} ${fmtTime(new Date(x.t))} (${x.v.toFixed(1)} ft)`).join(" · ");
@@ -1040,7 +1147,7 @@ function detail(r, idx, rankIdx){
   return `<div class="detail">
     ${whyBlock(s, rh, rankIdx !== idx ? `at ${fmtHour(rh.t)} ${dayName(rh.t)}` : "")}
     <div class="chartbox">${svg}</div>
-    <p class="muted" style="font-size:14px"><b>Now:</b> ${esc(swells)}<br><b>Tides (${esc(TIDE_NAMES[s.tide])}):</b> ${esc(tides || "n/a")}</p>
+    <p class="muted" style="font-size:14px"><b>${WHEN_LABEL ? esc(WHEN_LABEL) : "Now"}:</b> ${esc(swells)}<br><b>Tides (${esc(TIDE_NAMES[s.tide])}):</b> ${esc(tides || "n/a")}</p>
     <div class="links"><a href="${maps}" target="_blank" rel="noopener">Directions</a></div>
   </div>`;
 }
