@@ -24,6 +24,7 @@
   --bg:#0a151b; --surface:#10212a; --surface2:#0d1b23; --ink:#e2edf0; --muted:#8aa5b1; --line:#1f3642;
   --accent:#4cc2df; --night:rgba(0,0,0,.28); color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
@@ -55,6 +56,18 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .verdict .mtk{border-left:1px solid var(--line);padding-left:18px}
 .verdict .mtk:not(.go) .big{color:var(--muted)}
 @media (max-width:900px){.verdict{grid-template-columns:1fr 1fr}.verdict .mtk{grid-column:1/-1;border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+.origin{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.ocur{display:flex;flex-direction:column;gap:2px;min-width:140px}
+.ocur b{font:700 22px/1.1 var(--display)}
+.ofrm{display:flex;gap:6px;flex:1 1 260px;min-width:0}
+.ofrm input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.obtns{display:flex;flex-wrap:wrap;gap:8px}
+.obtns button.ctl{cursor:pointer;font-weight:600}
+#originMsg,.choices{flex-basis:100%}
+.choices{display:flex;flex-wrap:wrap;gap:6px}
+.choices button{font:inherit;font-size:14px;cursor:pointer;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--ink)}
+.choices button:hover{border-color:var(--accent)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .ew{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
 .ew .call{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
 .ew .call .dirword{font:700 clamp(34px,6vw,52px)/1 var(--display);color:var(--accent);letter-spacing:.01em}
@@ -90,7 +103,7 @@ button.win:focus-visible,.ew button.day:focus-visible{outline:2px solid var(--ac
 .dvsum>div{flex:1 1 150px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .dvsum b{font:600 19px/1.15 var(--display)}
 .hourly{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-.hourly table{border-collapse:collapse;width:100%;min-width:660px}
+.hourly table{border-collapse:collapse;width:100%;min-width:760px}
 .hourly th,.hourly td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:top}
 .hourly th{font:600 12px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface2)}
 .hourly td small{display:block;color:var(--muted);font-size:12px}
@@ -98,6 +111,9 @@ button.win:focus-visible,.ew button.day:focus-visible{outline:2px solid var(--ac
 .hourly tr.best td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .chips{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px}
 .chip{font-size:12px;line-height:1.2;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.paddle{display:inline-flex;align-items:center;gap:5px;color:var(--ink)}
+.chip.paddle i,.pdot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.pdot{margin-right:6px}
 .chip.fav{border-color:var(--r-good);color:var(--ink);font-weight:600}
 .chip.unfav{border-style:dashed}
 .wavebox{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
@@ -200,6 +216,21 @@ section{display:flex;flex-direction:column;gap:10px}
   </header>
 
   <div id="error" hidden class="err"></div>
+  <div class="origin">
+    <div class="ocur"><span class="eyebrow">Leaving from</span><b id="originName">Rocky Point</b><span class="muted" id="originSrc" style="font-size:12px"></span></div>
+    <form class="ofrm" id="originForm" autocomplete="off">
+      <label for="originInput" class="sr">Town you're leaving from</label>
+      <input id="originInput" type="search" placeholder="Town, e.g. Massapequa or Babylon" enterkeyhint="search">
+      <button class="btn" type="submit">Set</button>
+    </form>
+    <div class="obtns">
+      <button class="ctl" id="geoBtn" type="button">Use my location</button>
+      <button class="ctl" id="resetOrigin" type="button" hidden>Back to Rocky Point</button>
+      <label class="ctl" for="useDrive"><input type="checkbox" id="useDrive" checked> Factor in drive time</label>
+    </div>
+    <div id="originMsg" class="muted" style="font-size:14px" hidden></div>
+    <div id="originChoices" class="choices" hidden></div>
+  </div>
   <div class="ew" id="eastwest"></div>
   <div class="strip" id="strip"></div>
   <div class="verdict" id="verdict"></div>
@@ -293,13 +324,54 @@ const SPOTS = [
   likes:"Sits on the north side of the point, facing NNE into Block Island Sound. It only breaks when a big E or NE swell (a nor'easter or a passing hurricane) wraps around the point. On those days S to SW wind, which wrecks the whole south shore, blows offshore here. That's why it's the call when everything else is blown out.",
   notes:"Needs a big swell to break at all. Rocky."}
 ];
-// Typical no-traffic drive from Rocky Point, minutes (Democrat Point includes the walk from Field 5)
-const HOME = "Rocky Point";
-const DRIVE = {atl:80, lbt:70, lido:65, jbw:60, tob:55, gil:50, dem:60, rm3:45, smp:30, cup:40, dwh:40, pon:50, shi:55, dit:110, ter:110, tur:115, nob:115};
-const WEST = ["atl","lbt","lido","jbw","tob","gil","dem","rm3"], EAST = ["smp","cup","dwh","pon","shi"];
-SPOTS.forEach(s => { s.drive = DRIVE[s.id]; s.side = s.far ? "montauk" : WEST.includes(s.id) ? "west" : "east"; });
+// ---------- Where you're leaving from ----------
+const DEFAULT_ORIGIN = {name:"Rocky Point", lat:40.9526, lon:-72.9254};
+// Rocky Point fallback times (no traffic), used if the route service can't be reached
+const DRIVE_RP = {atl:85, lbt:80, lido:75, jbw:70, tob:60, gil:55, dem:60, rm3:45, smp:30, cup:40, dwh:40, pon:50, shi:55, dit:110, ter:110, tur:115, nob:115};
+const WALK = {dem:15}; // Democrat Point: walk west from Field 5
+let ORIGIN = DEFAULT_ORIGIN, DRIVES_SRC = "estimate";
+try { const o = JSON.parse(localStorage.getItem("origin")); if (o && isFinite(o.lat) && isFinite(o.lon)) ORIGIN = o; } catch(e){}
+const isDefaultOrigin = () => Math.abs(ORIGIN.lat - DEFAULT_ORIGIN.lat) < 0.01 && Math.abs(ORIGIN.lon - DEFAULT_ORIGIN.lon) < 0.01;
+function km(a, b){
+  const R = 6371, toR = x => x * Math.PI / 180;
+  const dLat = toR(b.lat - a.lat), dLon = toR(b.lon - a.lon);
+  const h = Math.sin(dLat/2)**2 + Math.cos(toR(a.lat)) * Math.cos(toR(b.lat)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const round5 = m => Math.max(5, Math.round(m / 5) * 5);
+function estimateDrives(){
+  return Object.fromEntries(SPOTS.map(s => [s.id,
+    isDefaultOrigin() ? DRIVE_RP[s.id] : round5(km(ORIGIN, s) * 1.35 / 70 * 60 + 8 + (WALK[s.id] || 0))]));
+}
+async function fetchDrives(){
+  const key = "drives:" + ORIGIN.lat.toFixed(3) + "," + ORIGIN.lon.toFixed(3);
+  try { const c = JSON.parse(localStorage.getItem(key)); if (c && Date.now() - c.at < 30 * 86400000) return {d: c.d, src: "route"}; } catch(e){}
+  const coords = [`${ORIGIN.lon},${ORIGIN.lat}`, ...SPOTS.map(s => `${s.lon},${s.lat}`)].join(";");
+  const r = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&annotations=duration`);
+  if (!r.ok) throw new Error("route service " + r.status);
+  const j = await r.json();
+  const row = j.durations && j.durations[0];
+  if (!row) throw new Error("no routes");
+  const d = Object.fromEntries(SPOTS.map((s, i) => [s.id, row[i+1] == null ? null : round5(row[i+1] / 60 + (WALK[s.id] || 0))]));
+  try { localStorage.setItem(key, JSON.stringify({at: Date.now(), d})); } catch(e){}
+  return {d, src: "route"};
+}
+function applyDrives(d){
+  const est = estimateDrives();
+  SPOTS.forEach(s => {
+    s.drive = d && d[s.id] != null ? d[s.id] : est[s.id];
+    // East or west of where you're starting; Montauk only joins the comparison when it's a reasonable drive
+    s.side = (s.far && s.drive > 75) ? "montauk" : (s.lon < ORIGIN.lon ? "west" : "east");
+  });
+}
+applyDrives(null);
+async function updateDrives(){
+  try { const r = await fetchDrives(); applyDrives(r.d); DRIVES_SRC = "route"; }
+  catch(e){ applyDrives(null); DRIVES_SRC = "estimate"; }
+}
 // Score adjusted for the drive: each extra hour behind the wheel costs about 0.8 points
 const driveAdj = (s, score) => score - Math.max(0, s.drive - 30) / 60 * 0.8;
+const useDrive = () => { const el = document.getElementById("useDrive"); return !el || el.checked; };
 const fmtDrive = m => m >= 60 ? `${Math.floor(m/60)} hr${m % 60 ? " " + (m % 60) + " min" : ""}` : `${m} min`;
 const TIDE_NAMES = {"8516881":"East Rockaway Inlet","8516385":"Jones Inlet","8515186":"Fire Island CG Station","8515228":"Democrat Point","8513398":"Moriches Inlet","8512354":"Shinnecock Inlet","8510560":"Montauk"};
 
@@ -465,9 +537,11 @@ function compute(raw){
       let score = sizeScore(total, pref * (s.handles || 1)) * q * wi.f * gustF * tideFactor(td, s.tidePref);
       const wave = waveShape({total, comps, dom, ws, wi, td}, s, pref);
       score *= 1 + 0.07 * hand * wave.b; // nudge toward the direction you like
+      const paddle = paddleOut({total, comps, dom, ws, wi, td}, s);
+      score *= paddle.d >= 8 ? 0.9 : paddle.d >= 6 ? 0.96 : 1; // a brutal paddle takes some fun out of it
       if (total < 0.8) score = Math.min(score, 1);
       score = clamp(score, 0, 10);
-      return {t, total, comps, dom, ws, wd, wg, wi, td, score, wave, day: isDay(t),
+      return {t, total, comps, dom, ws, wd, wg, wi, td, score, wave, paddle, day: isDay(t),
               temp: w.temperature_2m[i], sst: mval(si,"sea_surface_temperature",i), code: w.weather_code[i]};
     });
     return {spot: s, hours};
@@ -511,6 +585,7 @@ function waveChips(w){
   const unfav = hand !== 0 && Math.abs(w.b) >= 0.2 && Math.sign(w.b) === -hand;
   return `<span class="chip ${fav ? "fav" : unfav ? "unfav" : ""}">${w.b > 0.2 ? "↱" : w.b < -0.2 ? "↰" : "⇄"} ${w.dir}</span><span class="chip">${w.shape}</span><span class="chip">${w.ride}</span>`;
 }
+const paddleChip = p => `<span class="chip paddle" style="border-color:${p.color}"><i style="background:${p.color}"></i>Paddle: ${p.label}</span>`;
 function why(h){
   const parts = [];
   parts.push(`${h.wi.label.toLowerCase()} ${compass(h.wd)} wind at ${Math.round(h.ws)} mph`);
@@ -538,6 +613,11 @@ function analyze(s, h){
     if (Math.abs(h.wave.b) < 0.2) good.push(`Even mix of lefts and rights, so you'll find ${fav}.`);
     else if (Math.sign(h.wave.b) === hp) good.push(`${h.wave.dir} here, which is what you like.`);
     else bad.push(`${h.wave.dir} here, so fewer ${fav}.`);
+  }
+  // paddle out
+  if (h.paddle && h.total >= 0.8){
+    if (h.paddle.d < 2) good.push("Easy paddle out.");
+    else if (h.paddle.d >= 6) bad.push(`${h.paddle.label} paddle out: ${h.paddle.reasons[0].replace(/\.$/, "").toLowerCase()}.`);
   }
   // period
   const T = Math.round(h.dom.T);
@@ -632,6 +712,65 @@ function waveShape(h, s, pref){
   const short = h.total < 0.8 ? "–" : a < 0.2 ? "L+R" : b > 0 ? (a < 0.55 ? "R" : "R+") : (a < 0.55 ? "L" : "L+");
   return {b, dir, short, shape, why, ride, ang: signedOff(h.dom.d, s.facing)};
 }
+// ---------- Paddle out ----------
+// How hard each break is to get out at, all else equal (jetty rips help; steep, channel-less beaches hurt)
+const PADDLE = {
+  atl:{k:0.8,  tip:"Paddle out alongside a jetty. The rip running out next to it works like a conveyor belt."},
+  lbt:{k:0.75, tip:"Paddle out alongside a jetty. The rip running out next to it works like a conveyor belt."},
+  lido:{k:0.8, tip:"Look for the rip channel between sandbars: the darker, flatter water. Usually an easy route out."},
+  jbw:{k:0.9,  tip:"The rip along the inlet jetty helps you out, but on the outgoing tide it pulls hard toward the channel."},
+  tob:{k:1.0,  tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
+  gil:{k:1.05, tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
+  dem:{k:1.1,  tip:"Inlet currents can carry you sideways. Paddle out on the incoming tide and watch your drift."},
+  rm3:{k:1.0,  tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
+  smp:{k:1.15, tip:"Steep beach with a short, hard shorebreak. Wait for the lull and get through the inside fast."},
+  cup:{k:1.3,  tip:"Deep, steep beach plus inlet current. The inside can turn into a washing machine; wait for a lull and sprint, and use the jetty rip if it's running."},
+  dwh:{k:1.25, tip:"Steep beach, often with no clear channel. Expect a lot of duck-diving on bigger days."},
+  pon:{k:1.3,  tip:"Steep beach with a pounding inside on solid days and few channels to help."},
+  shi:{k:1.1,  tip:"Paddle out by the jetty where the current runs out. It's a heavy wave, so don't get caught inside on a set."},
+  dit:{k:0.7,  tip:"Easy paddle over sand and cobble. Watch the rocks at low tide."},
+  ter:{k:1.2,  tip:"Rocky entry at the bottom of the bluff. Pick your way out carefully."},
+  tur:{k:1.3,  tip:"Long paddle off the boulders below the lighthouse, with current around the point."},
+  nob:{k:1.2,  tip:"Rocky entry and strong current around the point."}
+};
+const PADDLE_LEVELS = [
+  {max:2, label:"Easy", color:"var(--r-good)"},
+  {max:4, label:"Manageable", color:"var(--r-fg)"},
+  {max:6, label:"Work for it", color:"var(--r-fair)"},
+  {max:8, label:"Tough", color:"var(--r-pf)"},
+  {max:99, label:"Nightmare", color:"var(--r-poor)"}
+];
+function paddleOut(h, s){
+  const p = PADDLE[s.id] || {k:1, tip:""};
+  const reasons = [];
+  const f = h.total, T = h.dom.T, steep = STEEP[s.id] ?? 0.5, pos = h.td ? h.td.pos : 0.5;
+  if (f < 0.8) return {d:0, label:"Easy", color:PADDLE_LEVELS[0].color, reasons:["Basically flat."], tip:p.tip};
+  let d = clamp(f * 0.9 - 0.5, 0, 9);
+  if (f >= 6) reasons.push(`${sizeText(f)} sets means a lot of whitewater to push through.`);
+  else if (f >= 4) reasons.push(`${sizeText(f)} is enough to make you duck-dive a fair bit.`);
+  // short period = waves stacked close together with no lulls
+  const shortP = T < 7 ? 0.25 : T < 9 ? 0.1 : 0;
+  d += shortP * f;
+  if (T < 8 && f >= 3) reasons.push(`Short ${Math.round(T)}-second period: waves come one after another with hardly any lull, which is what makes a washing machine.`);
+  else if (T >= 11 && f >= 4) { d += 0.5; reasons.push(`Long ${Math.round(T)}-second period gives longer lulls to time it, but the sets that do come are heavy.`); }
+  // crossed-up swells
+  const big = h.comps.filter(c => c.face > 1);
+  if (big.length >= 2 && angDiff(big[0].d, big[1].d) > 40){ d += 1; reasons.push("Two swells from different directions cross up, so the inside gets jumbled."); }
+  // wind chop
+  const L = h.wi.label;
+  if ((L === "Onshore" || L === "Cross-onshore") && h.ws > 10){ d += 1 + (h.ws - 10) * 0.08; reasons.push(`${L} wind at ${Math.round(h.ws)} mph adds chop and constant whitewater.`); }
+  else if (L === "Cross-shore" && h.ws > 12){ d += 0.5; reasons.push("Cross-shore wind sets up a sideways drift; you'll get pushed down the beach."); }
+  // tide and current
+  if (steep >= 0.6 && pos > 0.75 && !s.reef){ d += 0.8; reasons.push("High tide on a steep beach: the shorebreak hits hard right at the waterline."); }
+  if (s.tidePref === "incoming" && h.td && !h.td.rising){ d += 1; reasons.push("Outgoing tide: the inlet current runs hard, so you can get swept toward the channel."); }
+  d = clamp(d * p.k, 0, 10);
+  if (p.k <= 0.8 && f >= 2) reasons.push("Jetty rips or clear channels here make getting out easier than at most spots.");
+  if (p.k >= 1.25 && f >= 3) reasons.push("This beach is steep with few channels, so it's harder to get out than most spots on the same swell.");
+  const lv = PADDLE_LEVELS.find(x => d < x.max);
+  if (!reasons.length) reasons.push(d < 2 ? "Small, clean conditions. Easy to get out." : "Nothing unusual. Time it with the sets.");
+  return {d, label: lv.label, color: lv.color, reasons, tip: p.tip};
+}
+
 function dirExplain(h, s){
   const sd = signedOff(h.dom.d, s.facing), side = sd > 0 ? "west" : "east";
   const cw = compass(h.dom.d), fw = compass(s.facing);
@@ -656,7 +795,7 @@ function render(){
   let rankIdx = idx;
   if (!nowIsDay){ const n = res[0].hours.findIndex((h,i) => i > idx && h.day); if (n > 0) rankIdx = n; }
   const rankT = res[0].hours[rankIdx].t;
-  const rankVal = r => r.hours[rankIdx].score - (quiet ? 0.7 * (crowdLevel(r.spot, rankT, r.hours[rankIdx].score) - 1) : 0);
+  const rankVal = r => (useDrive() ? driveAdj(r.spot, r.hours[rankIdx].score) : r.hours[rankIdx].score) - (quiet ? 0.7 * (crowdLevel(r.spot, rankT, r.hours[rankIdx].score) - 1) : 0);
   const ranked = res.filter(r => !r.spot.far).sort((a,b) => rankVal(b) - rankVal(a));
   const montauk = res.filter(r => r.spot.far).sort((a,b) => b.hours[rankIdx].score - a.hours[rankIdx].score);
   if (store.get("open") === null && !OPEN.size){ OPEN.add(ranked[0].spot.id); store.set("open", [...OPEN]); }
@@ -702,7 +841,7 @@ function render(){
     </div>
     ${montauk.length ? (() => {
       const mt = montauk[0], mh = mt.hours[rankIdx];
-      const worth = mh.score >= 7.5 && mh.score >= bh.score + 0.8;
+      const worth = mh.score >= 7.5 && (useDrive() ? driveAdj(mt.spot, mh.score) - driveAdj(best.spot, bh.score) >= 0.3 : mh.score >= bh.score + 0.8);
       const line = worth ? `Worth the drive if you're free: ${mh.score.toFixed(1)} out east vs ${bh.score.toFixed(1)} at your best local spot.`
         : mh.score >= 6 ? `Good out east, but not enough better than home to justify the drive (${mh.score.toFixed(1)} vs ${bh.score.toFixed(1)}).`
         : "Stay local. Nothing out east beats the drive.";
@@ -729,7 +868,7 @@ function render(){
         <span class="wcell"><span class="cell">${arrowSvg(h.wd, 12)} ${compass(h.wd)} <span class="mono">${Math.round(h.ws)}</span> mph<small>${h.wi.label}${h.wg - h.ws > 8 ? `, gusts ${Math.round(h.wg)}` : ""}</small></span>
           <span class="cell">${tideText(h.td)}<small>${CROWD_WORDS[cl]}</small></span>
           <span class="cell hide-sm">${crowdDots(cl)}</span></span>
-        <span class="chips">${waveChips(h.wave)}</span>
+        <span class="chips">${waveChips(h.wave)}${paddleChip(h.paddle)}</span>
       </button>
       ${open ? detail(r, idx, rankIdx) : ""}
     </div>`;
@@ -763,7 +902,9 @@ function sideReasons(w, l, wSide){
     out.push(`the wind is ${w.h.wi.label.toLowerCase()} at ${ws.name} but ${l.h.wi.label.toLowerCase()} at ${ls.name}`);
   const dir = w.h.dom.d, dw = angDiff(dir, ws.facing), dl = angDiff(dir, ls.facing);
   if (dl - dw > 10)
-    out.push(`the ${compass(dir)} swell lines up better with the ${wSide} beaches, which face ${compass(ws.facing)} instead of ${compass(ls.facing)}`);
+    out.push(compass(ws.facing) !== compass(ls.facing)
+      ? `the ${compass(dir)} swell lines up better with the ${wSide} beaches, which face ${compass(ws.facing)} instead of ${compass(ls.facing)}`
+      : `the ${compass(dir)} swell hits ${ws.name} more directly (it faces ${Math.round(dl - dw)}° closer to the swell)`);
   const pref = +$("sizePref").value;
   const sizeDiff = w.h.total - l.h.total;
   if (sizeDiff > 1 && l.h.total / pref < 3) out.push(`it's about ${Math.round(sizeDiff)} ft bigger`);
@@ -773,11 +914,26 @@ function sideReasons(w, l, wSide){
   return out;
 }
 function renderEastWest(res, idx, rankIdx){
-  const W = bestOnSide(res, "west", rankIdx), E = bestOnSide(res, "east", rankIdx);
+  let W = bestOnSide(res, "west", rankIdx), E = bestOnSide(res, "east", rankIdx);
   const t = res[0].hours[rankIdx].t;
   const when = rankIdx === idx ? "right now" : `at first light (${dayName(t)} ${fmtHour(t)})`;
+  const oneWay = !W || !E; // every break is on one side of you (e.g. leaving from the city)
+  const oneSide = !W ? "east" : "west";
+  if (oneWay){
+    // compare the top two options instead of two directions
+    const opts = res.filter(r => r.spot.side !== "montauk").map(r => ({r, h: r.hours[rankIdx], adj: driveAdj(r.spot, r.hours[rankIdx].score)}))
+                    .sort((a,b) => b.adj - a.adj);
+    W = opts[0]; E = opts.find(o => o.r.spot.id !== W.r.spot.id && Math.abs(o.r.spot.lon - W.r.spot.lon) > 0.1) || opts[1];
+  }
   let call, text, winner;
-  if (Math.max(W.h.score, E.h.score) < 3){
+  if (oneWay){
+    winner = "west";
+    const top = W;
+    call = top.h.score < 3 ? "Stay home" : `Go to ${top.r.spot.name.split(",")[0]}`;
+    text = top.h.score < 3
+      ? `Nothing is worth the drive ${when}.`
+      : `Every break is ${oneSide} of you, so here are the two best trips ${when}, counting the drive. ${top.r.spot.name} (${fmtDrive(top.r.spot.drive)}) edges out ${E.r.spot.name} (${fmtDrive(E.r.spot.drive)}).`;
+  } else if (Math.max(W.h.score, E.h.score) < 3){
     winner = null; call = "Stay home";
     text = `Neither direction is worth it ${when}. If you just want to get wet, ${E.r.spot.name} is the closest at ${fmtDrive(E.r.spot.drive)}.`;
   } else if (Math.abs(W.adj - E.adj) < 0.4){
@@ -809,25 +965,28 @@ function renderEastWest(res, idx, rankIdx){
     let bw = null, be = null;
     res[0].hours.forEach((h, i) => {
       if (i < idx || !h.day || h.t.toDateString() !== k) return;
-      const w = bestOnSide(res, "west", i), e = bestOnSide(res, "east", i);
-      if (!bw || w.adj > bw.adj) bw = w;
-      if (!be || e.adj > be.adj) be = e;
+      const w = bestOnSide(res, oneWay ? oneSide : "west", i), e = bestOnSide(res, oneWay ? oneSide : "east", i);
+      if (w && (!bw || w.adj > bw.adj)) bw = w;
+      if (e && (!be || e.adj > be.adj)) be = e;
     });
+    if (!bw || !be) return "";
     const top = Math.max(bw.h.score, be.h.score);
     const d = new Date(k);
     const label = d.toDateString() === new Date().toDateString() ? "Today" : dayName(d);
     if (top < 3) return `<div class="day"><span class="muted">${label}</span><b class="muted">Skip</b><span class="muted">${top.toFixed(1)}</span></div>`;
     const pick = Math.abs(bw.adj - be.adj) < 0.4 ? (bw.r.spot.drive < be.r.spot.drive ? bw : be) : (bw.adj > be.adj ? bw : be);
-    const dir = pick.r.spot.side === "west" ? "West" : "East";
+    const dir = oneWay ? fmtDrive(pick.r.spot.drive) : pick.r.spot.side === "west" ? "West" : "East";
     return `<button class="day" data-open="${pick.r.spot.id}|${k}" style="border-color:${rcolor(pick.h.score)}" title="${esc(pick.r.spot.name)} ${fmtHour(pick.h.t)}. Tap for the full day."><span class="muted">${label}</span><b>${dir}</b><span>${esc(pick.r.spot.name.split(",")[0])}</span></button>`;
   }).join("");
   $("eastwest").innerHTML = `
-    <div class="eyebrow">From ${HOME}: east or west?</div>
-    <div class="call"><span class="dirword">${call}</span><p>${esc(text)}</p></div>
-    <div class="sides">${sideCard(W, "Best to the west · Robert Moses to Atlantic Beach", "west")}${sideCard(E, "Best to the east · Smith Point to Shinnecock", "east")}</div>
-    <div class="eyebrow" style="margin-top:2px">Which way, next 5 days</div>
+    <div class="eyebrow">From ${esc(ORIGIN.name)}: ${oneWay ? "where to go?" : "east or west?"}</div>
+    <div class="call"><span class="dirword">${esc(call)}</span><p>${esc(text)}</p></div>
+    <div class="sides">${oneWay
+      ? sideCard(W, "Best trip", "west") + sideCard(E, "Runner-up", "east")
+      : sideCard(W, `Best to the west · ${res.filter(r => r.spot.side === "west").length} breaks`, "west") + sideCard(E, `Best to the east · ${res.filter(r => r.spot.side === "east").length} breaks`, "east")}</div>
+    <div class="eyebrow" style="margin-top:2px">${oneWay ? "Best trip, next 5 days" : "Which way, next 5 days"}</div>
     <div class="days">${outlook}</div>
-    <p class="muted" style="margin:0;font-size:13px">Drive times are typical without traffic. Each extra hour of driving counts as a small penalty, so a slightly better wave far away won't beat a solid one close to home.</p>`;
+    <p class="muted" style="margin:0;font-size:13px">Drive times ${DRIVES_SRC === "route" ? "come from a route planner" : "are rough estimates (route planner unavailable)"} and don't include traffic. Each extra hour of driving counts as a small penalty, so a slightly better wave far away won't beat a solid one close to home.</p>`;
 }
 
 function detail(r, idx, rankIdx){
@@ -904,6 +1063,12 @@ function whyBlock(s, rh, sub){
         <p><b>Lefts or rights:</b> ${esc(dirExplain(rh, s))}${rh.comps.length > 1 && Math.abs(rh.wave.b) < 0.55 ? " A second swell from a different angle mixes in, which helps make A-frame peaks." : ""}</p>
         <p><b>Wave type:</b> ${esc(rh.wave.why)} ${rh.wave.ride === "Long, lined-up walls" ? "The steep swell angle makes long walls that run down the beach; they can be fast and hard to stay ahead of." : rh.wave.ride === "Long rides" ? "The angle lets waves peel for a good distance." : rh.wave.ride === "Short rides" ? "Expect quick rides before the wave shuts down." : ""}</p>
       </div>` : ""}
+      <div class="wavebox">
+        <span class="eyebrow">Paddle out</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${paddleChip(rh.paddle)}<span class="muted mono" style="font-size:12px">${rh.paddle.d.toFixed(1)} / 10</span></div>
+        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:15px">${rh.paddle.reasons.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+        ${rh.paddle.tip ? `<p style="font-size:14px"><b>How to get out here:</b> ${esc(rh.paddle.tip)}</p>` : ""}
+      </div>
       <p><b>What this break likes, and why:</b> ${esc(s.likes)}</p>
       <p class="muted" style="font-size:14px"><b>Quick version:</b> wind from the ${compass((s.facing + 180) % 360)}, swell from the ${compass(s.facing - 25)} to ${compass(s.facing + 25)}, ${prefWord}. ${esc(s.notes)}</p>
     </div>`;
@@ -936,11 +1101,12 @@ function renderDayView(res){
       <td>${arrowSvg(h.wd, 12)} ${compass(h.wd)} <span class="mono">${Math.round(h.ws)}</span><small>${h.wi.label}</small></td>
       <td>${h.td ? `${h.td.h.toFixed(1)} ft ${h.td.rising ? "↑" : "↓"}` : "–"}<small>${h.td ? tideWord(h.td) : ""}</small></td>
       <td>${h.wave.dir}<small>${h.wave.shape}</small></td>
+      <td><span class="pdot" style="background:${h.paddle.color}"></span>${h.paddle.label}</td>
     </tr>`).join("");
   el.innerHTML = `<div class="panel" role="document">
     <div class="dvhead">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
-        <span class="eyebrow">${dayFull(best.t)} · ${fmtDrive(s.drive)} from ${HOME}</span>
+        <span class="eyebrow">${dayFull(best.t)} · ${fmtDrive(s.drive)} from ${esc(ORIGIN.name)}</span>
         <h2 id="dvTitle">${esc(s.name)}</h2>
       </div>
       <button class="iconbtn" data-dv="close" aria-label="Close">✕</button>
@@ -958,7 +1124,7 @@ function renderDayView(res){
     </div>
     ${whyBlock(s, best, `at ${fmtHour(best.t)}, the best hour`)}
     <div class="hourly"><table>
-      <thead><tr><th>Time</th><th>Rating</th><th>Surf</th><th>Swell</th><th>Wind</th><th>Tide</th><th>Waves</th></tr></thead>
+      <thead><tr><th>Time</th><th>Rating</th><th>Surf</th><th>Swell</th><th>Wind</th><th>Tide</th><th>Waves</th><th>Paddle out</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     <div class="links"><a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}" target="_blank" rel="noopener">Directions</a></div>
   </div>`;
@@ -1011,7 +1177,7 @@ function renderWindows(res, idx){
       const good = list.filter(h => h.score >= peak.score - 0.6);
       const start = good[0].t, end = new Date(good[good.length - 1].t.getTime() + 3600000);
       const cl = crowdLevel(r.spot, peak.t, peak.score);
-      wins.push({r, peak, start, end, cl, rank: peak.score - (quiet ? 0.7 * (cl - 1) : 0) - (r.spot.far ? 1 : 0)});
+      wins.push({r, peak, start, end, cl, rank: (useDrive() ? driveAdj(r.spot, peak.score) : peak.score) - (quiet ? 0.7 * (cl - 1) : 0) - (r.spot.far ? 1 : 0)});
     });
   });
   wins.sort((a,b) => b.rank - a.rank);
@@ -1038,7 +1204,7 @@ function renderBoard(res){
     html += `<tr><td class="sp">${esc(r.spot.name)}</td>${days.map(d => {
       const h = b.get(d.toDateString());
       if (!h) return `<td class="muted">–</td>`;
-      return `<td><button class="c" data-open="${r.spot.id}|${d.toDateString()}" style="background:${rcolor(h.score)}" title="${rating(h.score).label} ${h.score.toFixed(1)} · ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph. Tap for the full day."><b>${sizeText(h.total)}</b><span>${fmtHour(h.t)} · ${compass(h.wd)} ${Math.round(h.ws)} · ${h.wave.short}</span></button></td>`;
+      return `<td><button class="c" data-open="${r.spot.id}|${d.toDateString()}" style="background:${rcolor(h.score)}" title="${rating(h.score).label} ${h.score.toFixed(1)} · ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph · Paddle: ${h.paddle.label}. Tap for the full day."><b>${sizeText(h.total)}</b><span>${fmtHour(h.t)} · ${compass(h.wd)} ${Math.round(h.ws)} · ${h.wave.short}</span></button></td>`;
     }).join("")}</tr>`;
   });
   html += `</tbody></table>`;
@@ -1060,8 +1226,65 @@ async function refresh(){
   btn.disabled = false; btn.textContent = "Refresh";
   render();
 }
-try { const p = store.get("prefs"); if (p){ $("sizePref").value = p.size; $("quiet").checked = !!p.quiet; if (p.hand != null) $("handPref").value = p.hand; } } catch(e){}
-const savePrefs = () => store.set("prefs", {size: $("sizePref").value, quiet: $("quiet").checked, hand: $("handPref").value});
+try { const p = store.get("prefs"); if (p){ $("sizePref").value = p.size; $("quiet").checked = !!p.quiet; if (p.hand != null) $("handPref").value = p.hand; if (p.drive != null) $("useDrive").checked = !!p.drive; } } catch(e){}
+const savePrefs = () => store.set("prefs", {size: $("sizePref").value, quiet: $("quiet").checked, hand: $("handPref").value, drive: $("useDrive").checked});
+$("useDrive").addEventListener("change", () => { savePrefs(); render(); });
+
+// ---------- Leaving-from controls ----------
+function showOriginMsg(text){ const m = $("originMsg"); m.textContent = text || ""; m.hidden = !text; }
+function showOrigin(){
+  $("originName").textContent = ORIGIN.name;
+  $("resetOrigin").hidden = isDefaultOrigin();
+  $("originSrc").textContent = DRIVES_SRC === "route" ? "Drive times from a route planner" : "Drive times estimated";
+}
+async function setOrigin(o){
+  ORIGIN = {name: o.name, lat: +o.lat, lon: +o.lon};
+  try { localStorage.setItem("origin", JSON.stringify(ORIGIN)); } catch(e){}
+  $("originChoices").hidden = true; $("originInput").value = "";
+  showOriginMsg(`Working out drive times from ${ORIGIN.name}…`);
+  showOrigin();
+  await updateDrives();
+  showOriginMsg(DRIVES_SRC === "route" ? "" : "Couldn't reach the route planner, so drive times are rough straight-line estimates.");
+  showOrigin(); render();
+}
+const placeLabel = p => [p.name, p.admin2 && p.admin2 !== p.name ? p.admin2 + (p.country_code === "US" && p.admin1 === "New York" ? " County" : "") : "", p.admin1 === "New York" ? "NY" : p.admin1].filter(Boolean).join(", ");
+$("originForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const q = $("originInput").value.trim();
+  if (!q) return;
+  showOriginMsg("Searching…"); $("originChoices").hidden = true;
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&countryCode=US&language=en`);
+    const j = await r.json();
+    let list = (j.results || []);
+    // Long Island and nearby first
+    const near = p => km({lat:40.8, lon:-73.1}, {lat:p.latitude, lon:p.longitude});
+    list.sort((a,b) => near(a) - near(b));
+    list = list.slice(0, 5);
+    if (!list.length){ showOriginMsg("Couldn't find that town. Try just the town name, like \"Massapequa\" or \"Port Jefferson\"."); return; }
+    if (list.length === 1 || near(list[0]) < 120 && (list.length < 2 || near(list[1]) > 120)){
+      return setOrigin({name: list[0].name, lat: list[0].latitude, lon: list[0].longitude});
+    }
+    showOriginMsg("Which one?");
+    const c = $("originChoices");
+    c.innerHTML = list.map((p, i) => `<button type="button" data-i="${i}">${esc(placeLabel(p))}</button>`).join("");
+    c.hidden = false;
+    c.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+      const p = list[+b.dataset.i]; setOrigin({name: p.name, lat: p.latitude, lon: p.longitude});
+    }));
+  } catch(err){ showOriginMsg("Town search isn't reachable right now. Try again in a minute, or use your location."); }
+});
+$("geoBtn").addEventListener("click", () => {
+  if (!navigator.geolocation){ showOriginMsg("This browser can't share your location. Type a town instead."); return; }
+  showOriginMsg("Finding your location…");
+  navigator.geolocation.getCurrentPosition(
+    pos => setOrigin({name: "Your location", lat: pos.coords.latitude, lon: pos.coords.longitude}),
+    err => showOriginMsg(err.code === 1 ? "Location permission was turned off. Type a town instead, or allow location for this site in your browser settings." : "Couldn't get your location. Type a town instead."),
+    {enableHighAccuracy: false, timeout: 10000, maximumAge: 600000});
+});
+$("resetOrigin").addEventListener("click", () => setOrigin(DEFAULT_ORIGIN));
+showOrigin();
+updateDrives().then(() => { showOrigin(); render(); });
 $("handPref").addEventListener("change", () => { savePrefs(); render(); });
 $("sizePref").addEventListener("change", () => { savePrefs(); render(); });
 $("quiet").addEventListener("change", () => { savePrefs(); render(); });
