@@ -103,7 +103,7 @@ button.win:focus-visible,.ew button.day:focus-visible{outline:2px solid var(--ac
 .dvsum>div{flex:1 1 150px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .dvsum b{font:600 19px/1.15 var(--display)}
 .hourly{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-.hourly table{border-collapse:collapse;width:100%;min-width:660px}
+.hourly table{border-collapse:collapse;width:100%;min-width:760px}
 .hourly th,.hourly td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:top}
 .hourly th{font:600 12px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface2)}
 .hourly td small{display:block;color:var(--muted);font-size:12px}
@@ -111,6 +111,9 @@ button.win:focus-visible,.ew button.day:focus-visible{outline:2px solid var(--ac
 .hourly tr.best td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .chips{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px}
 .chip{font-size:12px;line-height:1.2;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.paddle{display:inline-flex;align-items:center;gap:5px;color:var(--ink)}
+.chip.paddle i,.pdot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.pdot{margin-right:6px}
 .chip.fav{border-color:var(--r-good);color:var(--ink);font-weight:600}
 .chip.unfav{border-style:dashed}
 .wavebox{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
@@ -534,9 +537,11 @@ function compute(raw){
       let score = sizeScore(total, pref * (s.handles || 1)) * q * wi.f * gustF * tideFactor(td, s.tidePref);
       const wave = waveShape({total, comps, dom, ws, wi, td}, s, pref);
       score *= 1 + 0.07 * hand * wave.b; // nudge toward the direction you like
+      const paddle = paddleOut({total, comps, dom, ws, wi, td}, s);
+      score *= paddle.d >= 8 ? 0.9 : paddle.d >= 6 ? 0.96 : 1; // a brutal paddle takes some fun out of it
       if (total < 0.8) score = Math.min(score, 1);
       score = clamp(score, 0, 10);
-      return {t, total, comps, dom, ws, wd, wg, wi, td, score, wave, day: isDay(t),
+      return {t, total, comps, dom, ws, wd, wg, wi, td, score, wave, paddle, day: isDay(t),
               temp: w.temperature_2m[i], sst: mval(si,"sea_surface_temperature",i), code: w.weather_code[i]};
     });
     return {spot: s, hours};
@@ -580,6 +585,7 @@ function waveChips(w){
   const unfav = hand !== 0 && Math.abs(w.b) >= 0.2 && Math.sign(w.b) === -hand;
   return `<span class="chip ${fav ? "fav" : unfav ? "unfav" : ""}">${w.b > 0.2 ? "↱" : w.b < -0.2 ? "↰" : "⇄"} ${w.dir}</span><span class="chip">${w.shape}</span><span class="chip">${w.ride}</span>`;
 }
+const paddleChip = p => `<span class="chip paddle" style="border-color:${p.color}"><i style="background:${p.color}"></i>Paddle: ${p.label}</span>`;
 function why(h){
   const parts = [];
   parts.push(`${h.wi.label.toLowerCase()} ${compass(h.wd)} wind at ${Math.round(h.ws)} mph`);
@@ -607,6 +613,11 @@ function analyze(s, h){
     if (Math.abs(h.wave.b) < 0.2) good.push(`Even mix of lefts and rights, so you'll find ${fav}.`);
     else if (Math.sign(h.wave.b) === hp) good.push(`${h.wave.dir} here, which is what you like.`);
     else bad.push(`${h.wave.dir} here, so fewer ${fav}.`);
+  }
+  // paddle out
+  if (h.paddle && h.total >= 0.8){
+    if (h.paddle.d < 2) good.push("Easy paddle out.");
+    else if (h.paddle.d >= 6) bad.push(`${h.paddle.label} paddle out: ${h.paddle.reasons[0].replace(/\.$/, "").toLowerCase()}.`);
   }
   // period
   const T = Math.round(h.dom.T);
@@ -701,6 +712,65 @@ function waveShape(h, s, pref){
   const short = h.total < 0.8 ? "–" : a < 0.2 ? "L+R" : b > 0 ? (a < 0.55 ? "R" : "R+") : (a < 0.55 ? "L" : "L+");
   return {b, dir, short, shape, why, ride, ang: signedOff(h.dom.d, s.facing)};
 }
+// ---------- Paddle out ----------
+// How hard each break is to get out at, all else equal (jetty rips help; steep, channel-less beaches hurt)
+const PADDLE = {
+  atl:{k:0.8,  tip:"Paddle out alongside a jetty. The rip running out next to it works like a conveyor belt."},
+  lbt:{k:0.75, tip:"Paddle out alongside a jetty. The rip running out next to it works like a conveyor belt."},
+  lido:{k:0.8, tip:"Look for the rip channel between sandbars: the darker, flatter water. Usually an easy route out."},
+  jbw:{k:0.9,  tip:"The rip along the inlet jetty helps you out, but on the outgoing tide it pulls hard toward the channel."},
+  tob:{k:1.0,  tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
+  gil:{k:1.05, tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
+  dem:{k:1.1,  tip:"Inlet currents can carry you sideways. Paddle out on the incoming tide and watch your drift."},
+  rm3:{k:1.0,  tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
+  smp:{k:1.15, tip:"Steep beach with a short, hard shorebreak. Wait for the lull and get through the inside fast."},
+  cup:{k:1.3,  tip:"Deep, steep beach plus inlet current. The inside can turn into a washing machine; wait for a lull and sprint, and use the jetty rip if it's running."},
+  dwh:{k:1.25, tip:"Steep beach, often with no clear channel. Expect a lot of duck-diving on bigger days."},
+  pon:{k:1.3,  tip:"Steep beach with a pounding inside on solid days and few channels to help."},
+  shi:{k:1.1,  tip:"Paddle out by the jetty where the current runs out. It's a heavy wave, so don't get caught inside on a set."},
+  dit:{k:0.7,  tip:"Easy paddle over sand and cobble. Watch the rocks at low tide."},
+  ter:{k:1.2,  tip:"Rocky entry at the bottom of the bluff. Pick your way out carefully."},
+  tur:{k:1.3,  tip:"Long paddle off the boulders below the lighthouse, with current around the point."},
+  nob:{k:1.2,  tip:"Rocky entry and strong current around the point."}
+};
+const PADDLE_LEVELS = [
+  {max:2, label:"Easy", color:"var(--r-good)"},
+  {max:4, label:"Manageable", color:"var(--r-fg)"},
+  {max:6, label:"Work for it", color:"var(--r-fair)"},
+  {max:8, label:"Tough", color:"var(--r-pf)"},
+  {max:99, label:"Nightmare", color:"var(--r-poor)"}
+];
+function paddleOut(h, s){
+  const p = PADDLE[s.id] || {k:1, tip:""};
+  const reasons = [];
+  const f = h.total, T = h.dom.T, steep = STEEP[s.id] ?? 0.5, pos = h.td ? h.td.pos : 0.5;
+  if (f < 0.8) return {d:0, label:"Easy", color:PADDLE_LEVELS[0].color, reasons:["Basically flat."], tip:p.tip};
+  let d = clamp(f * 0.9 - 0.5, 0, 9);
+  if (f >= 6) reasons.push(`${sizeText(f)} sets means a lot of whitewater to push through.`);
+  else if (f >= 4) reasons.push(`${sizeText(f)} is enough to make you duck-dive a fair bit.`);
+  // short period = waves stacked close together with no lulls
+  const shortP = T < 7 ? 0.25 : T < 9 ? 0.1 : 0;
+  d += shortP * f;
+  if (T < 8 && f >= 3) reasons.push(`Short ${Math.round(T)}-second period: waves come one after another with hardly any lull, which is what makes a washing machine.`);
+  else if (T >= 11 && f >= 4) { d += 0.5; reasons.push(`Long ${Math.round(T)}-second period gives longer lulls to time it, but the sets that do come are heavy.`); }
+  // crossed-up swells
+  const big = h.comps.filter(c => c.face > 1);
+  if (big.length >= 2 && angDiff(big[0].d, big[1].d) > 40){ d += 1; reasons.push("Two swells from different directions cross up, so the inside gets jumbled."); }
+  // wind chop
+  const L = h.wi.label;
+  if ((L === "Onshore" || L === "Cross-onshore") && h.ws > 10){ d += 1 + (h.ws - 10) * 0.08; reasons.push(`${L} wind at ${Math.round(h.ws)} mph adds chop and constant whitewater.`); }
+  else if (L === "Cross-shore" && h.ws > 12){ d += 0.5; reasons.push("Cross-shore wind sets up a sideways drift; you'll get pushed down the beach."); }
+  // tide and current
+  if (steep >= 0.6 && pos > 0.75 && !s.reef){ d += 0.8; reasons.push("High tide on a steep beach: the shorebreak hits hard right at the waterline."); }
+  if (s.tidePref === "incoming" && h.td && !h.td.rising){ d += 1; reasons.push("Outgoing tide: the inlet current runs hard, so you can get swept toward the channel."); }
+  d = clamp(d * p.k, 0, 10);
+  if (p.k <= 0.8 && f >= 2) reasons.push("Jetty rips or clear channels here make getting out easier than at most spots.");
+  if (p.k >= 1.25 && f >= 3) reasons.push("This beach is steep with few channels, so it's harder to get out than most spots on the same swell.");
+  const lv = PADDLE_LEVELS.find(x => d < x.max);
+  if (!reasons.length) reasons.push(d < 2 ? "Small, clean conditions. Easy to get out." : "Nothing unusual. Time it with the sets.");
+  return {d, label: lv.label, color: lv.color, reasons, tip: p.tip};
+}
+
 function dirExplain(h, s){
   const sd = signedOff(h.dom.d, s.facing), side = sd > 0 ? "west" : "east";
   const cw = compass(h.dom.d), fw = compass(s.facing);
@@ -798,7 +868,7 @@ function render(){
         <span class="wcell"><span class="cell">${arrowSvg(h.wd, 12)} ${compass(h.wd)} <span class="mono">${Math.round(h.ws)}</span> mph<small>${h.wi.label}${h.wg - h.ws > 8 ? `, gusts ${Math.round(h.wg)}` : ""}</small></span>
           <span class="cell">${tideText(h.td)}<small>${CROWD_WORDS[cl]}</small></span>
           <span class="cell hide-sm">${crowdDots(cl)}</span></span>
-        <span class="chips">${waveChips(h.wave)}</span>
+        <span class="chips">${waveChips(h.wave)}${paddleChip(h.paddle)}</span>
       </button>
       ${open ? detail(r, idx, rankIdx) : ""}
     </div>`;
@@ -993,6 +1063,12 @@ function whyBlock(s, rh, sub){
         <p><b>Lefts or rights:</b> ${esc(dirExplain(rh, s))}${rh.comps.length > 1 && Math.abs(rh.wave.b) < 0.55 ? " A second swell from a different angle mixes in, which helps make A-frame peaks." : ""}</p>
         <p><b>Wave type:</b> ${esc(rh.wave.why)} ${rh.wave.ride === "Long, lined-up walls" ? "The steep swell angle makes long walls that run down the beach; they can be fast and hard to stay ahead of." : rh.wave.ride === "Long rides" ? "The angle lets waves peel for a good distance." : rh.wave.ride === "Short rides" ? "Expect quick rides before the wave shuts down." : ""}</p>
       </div>` : ""}
+      <div class="wavebox">
+        <span class="eyebrow">Paddle out</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${paddleChip(rh.paddle)}<span class="muted mono" style="font-size:12px">${rh.paddle.d.toFixed(1)} / 10</span></div>
+        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:15px">${rh.paddle.reasons.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+        ${rh.paddle.tip ? `<p style="font-size:14px"><b>How to get out here:</b> ${esc(rh.paddle.tip)}</p>` : ""}
+      </div>
       <p><b>What this break likes, and why:</b> ${esc(s.likes)}</p>
       <p class="muted" style="font-size:14px"><b>Quick version:</b> wind from the ${compass((s.facing + 180) % 360)}, swell from the ${compass(s.facing - 25)} to ${compass(s.facing + 25)}, ${prefWord}. ${esc(s.notes)}</p>
     </div>`;
@@ -1025,6 +1101,7 @@ function renderDayView(res){
       <td>${arrowSvg(h.wd, 12)} ${compass(h.wd)} <span class="mono">${Math.round(h.ws)}</span><small>${h.wi.label}</small></td>
       <td>${h.td ? `${h.td.h.toFixed(1)} ft ${h.td.rising ? "↑" : "↓"}` : "–"}<small>${h.td ? tideWord(h.td) : ""}</small></td>
       <td>${h.wave.dir}<small>${h.wave.shape}</small></td>
+      <td><span class="pdot" style="background:${h.paddle.color}"></span>${h.paddle.label}</td>
     </tr>`).join("");
   el.innerHTML = `<div class="panel" role="document">
     <div class="dvhead">
@@ -1047,7 +1124,7 @@ function renderDayView(res){
     </div>
     ${whyBlock(s, best, `at ${fmtHour(best.t)}, the best hour`)}
     <div class="hourly"><table>
-      <thead><tr><th>Time</th><th>Rating</th><th>Surf</th><th>Swell</th><th>Wind</th><th>Tide</th><th>Waves</th></tr></thead>
+      <thead><tr><th>Time</th><th>Rating</th><th>Surf</th><th>Swell</th><th>Wind</th><th>Tide</th><th>Waves</th><th>Paddle out</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     <div class="links"><a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}" target="_blank" rel="noopener">Directions</a></div>
   </div>`;
@@ -1127,7 +1204,7 @@ function renderBoard(res){
     html += `<tr><td class="sp">${esc(r.spot.name)}</td>${days.map(d => {
       const h = b.get(d.toDateString());
       if (!h) return `<td class="muted">–</td>`;
-      return `<td><button class="c" data-open="${r.spot.id}|${d.toDateString()}" style="background:${rcolor(h.score)}" title="${rating(h.score).label} ${h.score.toFixed(1)} · ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph. Tap for the full day."><b>${sizeText(h.total)}</b><span>${fmtHour(h.t)} · ${compass(h.wd)} ${Math.round(h.ws)} · ${h.wave.short}</span></button></td>`;
+      return `<td><button class="c" data-open="${r.spot.id}|${d.toDateString()}" style="background:${rcolor(h.score)}" title="${rating(h.score).label} ${h.score.toFixed(1)} · ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph · Paddle: ${h.paddle.label}. Tap for the full day."><b>${sizeText(h.total)}</b><span>${fmtHour(h.t)} · ${compass(h.wd)} ${Math.round(h.ws)} · ${h.wave.short}</span></button></td>`;
     }).join("")}</tr>`;
   });
   html += `</tbody></table>`;
