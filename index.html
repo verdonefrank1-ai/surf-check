@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>South Shore Surf Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one column field report. Verdict up top, ranked break list, then a 6-day board. */
+:root{
+  --bg:#e9f0f1; --surface:#ffffff; --surface2:#f4f8f9; --ink:#0d2430; --muted:#587382; --line:#d2dee2;
+  --accent:#0a6e8a; --night:rgba(13,36,48,.07);
+  --r-flat:#a3b1b7; --r-poor:#d9604f; --r-pf:#eb9550; --r-fair:#e7c64e; --r-fg:#9bcb5c; --r-good:#33b071; --r-epic:#7c5fd8;
+  --on-rating:#0d1a20;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a151b; --surface:#10212a; --surface2:#0d1b23; --ink:#e2edf0; --muted:#8aa5b1; --line:#1f3642;
+  --accent:#4cc2df; --night:rgba(0,0,0,.28); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a151b; --surface:#10212a; --surface2:#0d1b23; --ink:#e2edf0; --muted:#8aa5b1; --line:#1f3642;
+  --accent:#4cc2df; --night:rgba(0,0,0,.28); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:clamp(30px,5vw,44px);line-height:1}
+h2{font-size:24px}
+.eyebrow{font:600 12px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ctl{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px}
+.ctl select{background:transparent;border:0;padding:0}
+.btn{background:var(--accent);color:var(--surface);border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:wait}
+
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.strip>div{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.strip .v{font:600 20px/1.1 var(--display)}
+.strip .s{font-size:13px;color:var(--muted)}
+
+.verdict{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:grid;grid-template-columns:1fr 1fr 0.8fr;gap:18px}
+.verdict>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.verdict .mtk{border-left:1px solid var(--line);padding-left:18px}
+.verdict .mtk:not(.go) .big{color:var(--muted)}
+@media (max-width:900px){.verdict{grid-template-columns:1fr 1fr}.verdict .mtk{grid-column:1/-1;border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+.why{display:flex;flex-direction:column;gap:10px}
+.why h3{font-size:20px}
+.whycols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.whycols>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+.whycols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:15px}
+.eyebrow.ok{color:var(--r-good)}
+.eyebrow.no{color:var(--r-poor)}
+@media (max-width:640px){.whycols{grid-template-columns:1fr}}
+.board td.grp{text-align:left;font:600 12px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);padding:10px 12px}
+.verdict .big{font:700 clamp(26px,4vw,36px)/1.05 var(--display)}
+.verdict p{margin:0}
+@media (max-width:640px){.verdict{grid-template-columns:1fr}}
+
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font:600 13px/1.3 var(--body);color:var(--on-rating);white-space:nowrap}
+.badge{font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:3px 5px;white-space:nowrap}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.row>button.head{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:grid;
+  grid-template-columns:30px minmax(0,1.7fr) 112px 86px minmax(0,1.2fr) minmax(0,1.1fr) minmax(0,1.1fr) 44px;gap:12px;align-items:center;padding:12px 14px}
+.row>button.head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rank{font:700 22px/1 var(--display);color:var(--muted);text-align:center}
+.name{display:flex;flex-direction:column;gap:2px;min-width:0}
+.name b{font:600 19px/1.15 var(--display)}
+.name span{font-size:13px;color:var(--muted)}
+.size{font:700 22px/1 var(--display)}
+.cell{font-size:14px;min-width:0}
+.cell small{display:block;color:var(--muted);font-size:12px}
+.crowd{display:flex;gap:3px;align-items:center}
+.crowd i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.crowd i.on{background:var(--muted)}
+.arrow{display:inline-block;transition:none}
+.detail{border-top:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--surface2)}
+.detail p{margin:0;max-width:72ch}
+.chartbox{overflow-x:auto}
+.chartbox svg{display:block}
+.links{display:flex;flex-wrap:wrap;gap:14px;font-size:14px}
+@media (max-width:860px){
+  .row>button.head{grid-template-columns:28px minmax(0,1fr) auto;grid-template-areas:"r n p" "r s s" "r w w";row-gap:6px}
+  .row .rank{grid-area:r;align-self:start}
+  .row .name{grid-area:n}
+  .row .pcell{grid-area:p}
+  .row .scell{grid-area:s;display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
+  .row .wcell{grid-area:w;display:flex;gap:14px;flex-wrap:wrap}
+  .row .hide-sm{display:none}
+}
+@media (min-width:861px){.row .scell,.row .wcell{display:contents}}
+
+.board{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.board table{border-collapse:collapse;width:100%;min-width:720px}
+.board th,.board td{padding:6px;border-bottom:1px solid var(--line);text-align:center;font-size:13px}
+.board th{font:600 13px/1.2 var(--body);color:var(--muted);background:var(--surface2)}
+.board td.sp{text-align:left;font:600 15px/1.2 var(--display);white-space:nowrap;padding-left:12px}
+.board .c{border-radius:6px;padding:5px 4px;color:var(--on-rating);display:flex;flex-direction:column;line-height:1.15}
+.board .c b{font:700 15px/1.1 var(--display)}
+.board .c span{font-size:11px;opacity:.8}
+.windows{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.win{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.win b{font:600 18px/1.15 var(--display)}
+.legend{display:flex;flex-wrap:wrap;gap:6px}
+footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px;max-width:80ch}
+footer p{margin:0}
+.err{background:var(--surface);border:1px solid var(--r-poor);border-radius:10px;padding:12px 14px}
+section{display:flex;flex-direction:column;gap:10px}
+.sechead{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="eyebrow">Long Island south shore · Atlantic Beach to Shinnecock</div>
+      <h1>South Shore Surf Check</h1>
+      <div class="muted" id="updated" style="font-size:14px">Loading live data…</div>
+    </div>
+    <div class="controls">
+      <label class="ctl" for="sizePref">Size I like
+        <select id="sizePref">
+          <option value="0.75">Small &amp; fun (2–4 ft)</option>
+          <option value="1" selected>Standard (3–6 ft)</option>
+          <option value="1.5">Overhead+ (5–10 ft)</option>
+        </select>
+      </label>
+      <label class="ctl" for="quiet"><input type="checkbox" id="quiet"> Favor quieter spots</label>
+      <button class="btn" id="refresh">Refresh</button>
+    </div>
+  </header>
+
+  <div id="error" hidden class="err"></div>
+  <div class="strip" id="strip"></div>
+  <div class="verdict" id="verdict"></div>
+
+  <section>
+    <div class="sechead">
+      <h2 id="listTitle">Breaks ranked right now</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="list" id="list"></div>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>Montauk drive days</h2><span class="muted" style="font-size:14px">Never the top pick. Flagged above only when it's clearly better than home.</span></div>
+    <div class="list" id="mlist"></div>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>Best windows, next 5 days</h2><span class="muted" style="font-size:14px">Daylight only</span></div>
+    <div class="windows" id="windows"></div>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>6-day board</h2><span class="muted" style="font-size:14px">Each cell: that day's best daylight hour at the break</span></div>
+    <div class="board" id="board"></div>
+  </section>
+
+  <footer>
+    <p><b>Where the numbers come from.</b> Waves, swell and water temperature: Open-Meteo Marine (model data, updated hourly). Wind and air: Open-Meteo weather models. Tides: NOAA tide predictions for the nearest ocean inlet station. "Now" is the model's estimate for the current hour, not a buoy reading.</p>
+    <p><b>Real buoy readings:</b> <a href="https://www.ndbc.noaa.gov/station_page.php?station=44025" target="_blank" rel="noopener">NDBC 44025 (south of Fire Island)</a> · <a href="https://www.ndbc.noaa.gov/station_page.php?station=44065" target="_blank" rel="noopener">NDBC 44065 (NY Harbor entrance)</a> · <a href="https://www.ndbc.noaa.gov/station_page.php?station=44017" target="_blank" rel="noopener">NDBC 44017 (Montauk)</a> · <a href="https://forecast.weather.gov/product.php?site=OKX&amp;issuedby=OKX&amp;product=SRF" target="_blank" rel="noopener">NWS surf zone forecast</a></p>
+    <p><b>How the rating works.</b> Swell height and period are turned into an estimated wave face height for each break, adjusted for which way the beach faces. That is scored against the size you picked, then marked down for onshore or cross-shore wind and nudged for tide. Crowd levels are typical patterns, not live counts. Sandbars move, so treat this as a shortlist and check a cam or the beach before you commit.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+// ---------- Breaks, west to east ----------
+// facing = compass direction the beach faces (offshore wind blows FROM facing+180)
+const SPOTS = [
+ {id:"atl",  name:"Atlantic Beach jetties", area:"Nassau · west of Long Beach", lat:40.587, lon:-73.727, facing:180, tide:"8516881", tidePref:"lowmid", crowd:1, gain:0.92, handles:0.95, isNew:true,
+  likes:"This stretch faces due south, so S and SE swells hit it straight on, while straight east swells come in at a steep angle and lose a lot of size. North and northwest winds blow off the land and groom the faces. The jetties trap sand into bars that break best from low to mid tide; at high tide the water is too deep over the bars and waves dump on the shore.",
+  notes:"Same swell exposure as Long Beach with far fewer people."},
+ {id:"lbt",  name:"Long Beach, town jetties", area:"Long Beach · west end into town", lat:40.583, lon:-73.668, facing:180, tide:"8516385", tidePref:"lowmid", crowd:3, gain:1.0, handles:0.95,
+  likes:"Faces due south like Atlantic Beach, so it wants S to SE swell and N to NW wind. The jetties every few blocks hold sandbars in place, which keeps the peaks more predictable than an open beach and helps on messy, short-period swells. Low to mid tide is best; high tide fills in the bars and turns it into shorebreak.",
+  notes:"The most crowded zone on good days. Walk a few jetties over to find space."},
+ {id:"lido", name:"Lido Beach", area:"Long Beach · east end", lat:40.587, lon:-73.617, facing:178, tide:"8516385", tidePref:"mid", crowd:2, gain:1.0, handles:1.0,
+  likes:"South-facing open beach with no jetties, so it relies on natural sandbars. It takes S to SE swell best and N wind is offshore. Without jetties it handles a bit more size before closing out, and mid tide usually gives the bars the right depth.",
+  notes:"Spreads the crowd out compared to the town jetties."},
+ {id:"jbw",  name:"Jones Beach, West End", area:"Jones Inlet jetty · West End 2 lot", lat:40.589, lon:-73.556, facing:175, tide:"8516385", tidePref:"incoming", crowd:2, gain:1.0, handles:1.05, isNew:true,
+  likes:"The inlet builds a big underwater sand shoal off its mouth. Swell bends around that shoal and focuses into peaks with more shape than the open beach. It faces south, likes S to SE swell, and N wind is offshore. The incoming tide pushes the same way as the waves, which smooths them out; the outgoing tide runs against the swell and makes it steep, choppy and dangerous near the channel.",
+  notes:"Park at West End 2 and walk to the jetty. Stay out of the channel on the outgoing."},
+ {id:"tob",  name:"Tobay Beach", area:"Ocean Pkwy · between Jones and Gilgo", lat:40.610, lon:-73.430, facing:172, tide:"8515186", tidePref:"mid", crowd:1, gain:0.98, handles:1.0, isNew:true,
+  likes:"A long, straight barrier beach facing just east of south. It picks up S and SE swell well, and NNW wind is straight offshore. The sandbars shift after every storm, so it can be great one week and close out the next. Mid tide is usually the sweet spot.",
+  notes:"Few surfers. In summer, parking is limited to Town of Oyster Bay residents."},
+ {id:"gil",  name:"Gilgo", area:"Ocean Pkwy", lat:40.618, lon:-73.395, facing:170, tide:"8515186", tidePref:"mid", crowd:2, gain:1.0, handles:1.0,
+  likes:"Faces SSE with deep water close to shore, so it soaks up a lot of swell from the S, SE and E. NNW wind is offshore. It's a shifty beach break: the sandbars decide where the good peaks are, and mid tide usually works best.",
+  notes:"Look for the bar with the cleanest peak; it changes week to week."},
+ {id:"dem",  name:"Democrat Point", area:"Fire Island Inlet · walk from Field 5", lat:40.622, lon:-73.302, facing:185, tide:"8515228", tidePref:"incoming", crowd:1, gain:1.05, handles:1.05,
+  likes:"The west tip of Fire Island points a little west of south, so it catches S and even SW swell better than the rest of Fire Island. The inlet's sand shoals bend swell into peaks. NNE wind is offshore. The inlet current is strong: incoming tide is cleaner and safer, outgoing tide fights the swell and pulls toward the channel.",
+  notes:"Long walk west from Field 5. Stay clear of the channel."},
+ {id:"rm3",  name:"Robert Moses Field 3", area:"Fire Island", lat:40.627, lon:-73.268, facing:168, tide:"8515186", tidePref:"mid", crowd:3, gain:1.0, handles:1.0,
+  likes:"Faces SSE and picks up just about any swell from the E around to the S. NNW wind is offshore. It's a consistent beach break with several sandbars, usually best around mid tide.",
+  notes:"Easy parking. Busy in summer; walk east or west from the lot to find space."},
+ {id:"smp",  name:"Smith Point", area:"Smith Point County Park", lat:40.734, lon:-72.862, facing:158, tide:"8513398", tidePref:"mid", crowd:2, gain:1.0, handles:1.0,
+  likes:"The coast turns more toward the southeast out here, so E and SE swells hit Smith Point more directly than the Nassau beaches. NW wind is offshore. Deeper water close in gives it more push, and mid tide keeps it from turning into shorebreak.",
+  notes:"Plenty of beach to spread out."},
+ {id:"cup",  name:"Cupsogue", area:"Moriches Inlet · east side", lat:40.768, lon:-72.735, facing:158, tide:"8513398", tidePref:"incoming", crowd:2, gain:1.03, handles:1.05,
+  likes:"Faces SSE, so it lines up well with E to S swells, and NW wind is offshore. The Moriches Inlet jetty and the sand shoal off the inlet help shape cleaner peaks. Incoming tide works best; the outgoing current is strong and chops things up.",
+  notes:"Strong current near the inlet mouth."},
+ {id:"dwh",  name:"Dune Road, Westhampton", area:"Pikes, Rogers and the village beaches", lat:40.795, lon:-72.640, facing:157, tide:"8513398", tidePref:"mid", crowd:1, gain:0.98, handles:1.0,
+  likes:"Faces SSE with fairly steep beaches. E, SE and S swells all reach it, and NW wind is offshore. The steep beach means high tide often turns it into a hard shorebreak, so mid tide is usually best.",
+  notes:"Very few people outside summer. Village parking rules apply in season."},
+ {id:"pon",  name:"Ponquogue", area:"Dune Road · Hampton Bays", lat:40.836, lon:-72.500, facing:156, tide:"8512354", tidePref:"mid", crowd:2, gain:1.0, handles:1.0,
+  likes:"SSE-facing beach just west of Shinnecock Inlet. It takes E to S swell, NW wind is offshore, and it's usually mellower than the inlet on the same swell. Mid tide works best.",
+  notes:"Less competitive than the inlet."},
+ {id:"shi",  name:"Shinnecock Inlet, east jetty", area:"Dune Road · Southampton", lat:40.839, lon:-72.474, facing:158, tide:"8512354", tidePref:"lowmid", crowd:3, gain:1.15, handles:1.1, isNew:true,
+  likes:"The east jetty and the inlet's sand shoal combine to make a defined, powerful peak instead of shifting beach-break peaks, so it gets bigger and hollower than the beaches nearby. It lines up best with S to SE swell and NW wind. Low to mid tide makes it hollow; high tide softens it.",
+  notes:"Draws a crowd when it's on, and it can be heavy."},
+ // ---- Montauk: drive-day spots, never a top pick ----
+ {id:"dit",  name:"Ditch Plains", area:"Montauk", lat:41.038, lon:-71.918, mlat:41.01, mlon:-71.918, facing:180, tide:"8510560", tidePref:"mid", crowd:3, gain:0.95, handles:0.9, far:true, wrap:0.15, reef:true,
+  likes:"A cobble and rock reef with sand on top, facing south. Because it's a reef it breaks in the same spots every time and stays surfable on smaller swells that barely move the sandbars. It wants S to SE swell; NW to N wind is offshore. Mid tide is best; low tide gets shallow over the rocks.",
+  notes:"The most crowded spot out east. Mellow and fun, not heavy."},
+ {id:"ter",  name:"Terrace", area:"Montauk · Camp Hero", lat:41.063, lon:-71.878, mlat:41.035, mlon:-71.88, facing:150, tide:"8510560", tidePref:"mid", crowd:2, gain:1.05, handles:1.45, far:true, wrap:0.3, reef:true,
+  likes:"A rocky reef below the Camp Hero bluffs, facing southeast. It needs a solid E to SE swell to really break, and it holds size well past the point where the south shore beaches close out. N to NW wind is offshore. Rocks and current: experienced surfers only.",
+  notes:"Best on the bigger days. Long walk down the bluff."},
+ {id:"tur",  name:"Turtle Cove", area:"Montauk · below the lighthouse", lat:41.068, lon:-71.859, mlat:41.04, mlon:-71.86, facing:165, tide:"8510560", tidePref:"mid", crowd:2, gain:1.05, handles:1.5, far:true, wrap:0.35, reef:true,
+  likes:"A boulder point right below the Montauk lighthouse, facing SSE. Long-period S to SE swell wraps along the rocks and peels, and it handles big swell that would close out everything west. NW to N wind is offshore. Boulders, current and a long paddle: experienced surfers only.",
+  notes:"Park at the lighthouse lot. Watch the rocks at low tide."},
+ {id:"nob",  name:"North Bar", area:"Montauk Point · north side", lat:41.075, lon:-71.857, mlat:41.10, mlon:-71.84, facing:20, tide:"8510560", tidePref:"mid", crowd:2, gain:1.0, handles:1.6, far:true, wrap:0.3, reef:true,
+  likes:"Sits on the north side of the point, facing NNE into Block Island Sound. It only breaks when a big E or NE swell (a nor'easter or a passing hurricane) wraps around the point. On those days S to SW wind, which wrecks the whole south shore, blows offshore here. That's why it's the call when everything else is blown out.",
+  notes:"Needs a big swell to break at all. Rocky."}
+];
+const TIDE_NAMES = {"8516881":"East Rockaway Inlet","8516385":"Jones Inlet","8515186":"Fire Island CG Station","8515228":"Democrat Point","8513398":"Moriches Inlet","8512354":"Shinnecock Inlet","8510560":"Montauk"};
+
+const RATINGS = [
+  {min:8.8, key:"epic", label:"Epic"},
+  {min:7.5, key:"good", label:"Good"},
+  {min:6.0, key:"fg",   label:"Fair–Good"},
+  {min:4.5, key:"fair", label:"Fair"},
+  {min:3.0, key:"pf",   label:"Poor–Fair"},
+  {min:1.5, key:"poor", label:"Poor"},
+  {min:-1,  key:"flat", label:"Flat"}
+];
+const rating = s => RATINGS.find(r => s >= r.min);
+const rcolor = s => `var(--r-${rating(s).key})`;
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const angDiff = (a,b) => { let d = Math.abs(((a - b) % 360 + 540) % 360 - 180); return d; };
+const COMP = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const compass = d => COMP[Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtHour = d => { const h = d.getHours(); return (h % 12 || 12) + (h < 12 ? "a" : "p"); };
+const fmtTime = d => d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+const dayName = d => d.toLocaleDateString([], {weekday:"short"});
+const dayFull = d => d.toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"});
+const parseLocal = s => new Date(s.replace(" ", "T"));
+const ymd = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+const store = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+                set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
+
+// ---------- surf model ----------
+// Rough breaking face height multiplier by period (longer period = bigger faces for the same offshore height)
+const periodFactor = T => clamp(0.35 + 0.075 * (T || 6), 0.7, 1.6);
+// How much of a swell reaches a beach, by angle between swell direction and the way the beach faces
+function exposure(dir, facing, wrap){
+  const d = angDiff(dir, facing);
+  let e;
+  if (d <= 40) e = 1;
+  else if (d <= 95) e = 1 - (d - 40) / 55 * 0.8;
+  else e = 0.12;
+  return Math.max(e, wrap || 0);
+}
+function sizeScore(h, pref){
+  const x = h / pref;
+  const pts = [[0,0],[1,1],[2,3.5],[3,6],[4,8],[6,9.6],[8,9],[10,7.5],[14,5],[20,3]];
+  if (x >= 20) return 3;
+  for (let i = 1; i < pts.length; i++){
+    if (x <= pts[i][0]){ const [x0,y0] = pts[i-1], [x1,y1] = pts[i]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0); }
+  }
+  return 3;
+}
+function windInfo(speed, dirFrom, facing){
+  const rel = angDiff(dirFrom, (facing + 180) % 360); // 0 = straight offshore
+  let label, f;
+  if (speed < 4){ label = "Glassy"; f = 1.05; }
+  else if (rel <= 45){ label = "Offshore"; f = speed <= 18 ? 1.05 : Math.max(0.72, 1.05 - (speed - 18) * 0.025); }
+  else if (rel <= 80){ label = "Cross-offshore"; f = 1 - Math.max(0, speed - 15) * 0.02; }
+  else if (rel <= 110){ label = "Cross-shore"; f = Math.max(0.45, 1 - Math.max(0, speed - 6) * 0.035); }
+  else if (rel <= 145){ label = "Cross-onshore"; f = Math.max(0.3, 1 - Math.max(0, speed - 4) * 0.045); }
+  else { label = "Onshore"; f = Math.max(0.2, 1 - Math.max(0, speed - 3) * 0.055); }
+  return {label, f, rel};
+}
+// Tide: cosine interpolation between NOAA highs and lows
+function tideAt(hilo, t){
+  if (!hilo || hilo.length < 2) return null;
+  const x = t.getTime();
+  for (let i = 0; i < hilo.length - 1; i++){
+    const a = hilo[i], b = hilo[i+1];
+    if (x >= a.t && x < b.t){
+      const fr = (x - a.t) / (b.t - a.t);
+      const h = a.v + (b.v - a.v) * (1 - Math.cos(Math.PI * fr)) / 2;
+      const lo = Math.min(a.v, b.v), hi = Math.max(a.v, b.v);
+      return {h, pos: hi > lo ? (h - lo) / (hi - lo) : 0.5, rising: b.v > a.v, next: b};
+    }
+  }
+  return null;
+}
+function tideFactor(td, pref){
+  if (!td) return 1;
+  const p = td.pos;
+  if (pref === "lowmid") return p < 0.15 ? 0.95 : p <= 0.6 ? 1.04 : p <= 0.85 ? 0.96 : 0.88;
+  if (pref === "incoming") return (td.rising ? 1.05 : 0.9) * (p > 0.9 ? 0.95 : 1);
+  return p < 0.12 ? 0.93 : p <= 0.8 ? 1.02 : 0.92; // mid
+}
+const tideWord = td => !td ? "" : (td.pos < 0.2 ? "low" : td.pos > 0.8 ? "high" : "mid");
+
+// ---------- data ----------
+let DATA = null;           // raw fetched data
+let OPEN = new Set(store.get("open") || []);
+
+async function getJSON(url){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${new URL(url).host} answered ${r.status}`);
+  return r.json();
+}
+async function loadAll(){
+  const mlat = SPOTS.map(s => s.mlat ?? (s.lat - 0.03).toFixed(3)).join(",");
+  const mlon = SPOTS.map(s => s.mlon ?? s.lon).join(",");
+  const lat = SPOTS.map(s => s.lat).join(","), lon = SPOTS.map(s => s.lon).join(",");
+  const tz = "America%2FNew_York";
+  const marineVars = "wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction,wind_wave_height,wind_wave_period,wind_wave_direction,sea_surface_temperature";
+  const mUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${mlat}&longitude=${mlon}&hourly=${marineVars}&length_unit=imperial&timezone=${tz}&forecast_days=7`;
+  const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weather_code&daily=sunrise,sunset&wind_speed_unit=mph&temperature_unit=fahrenheit&timezone=${tz}&forecast_days=7`;
+  const start = new Date(); start.setDate(start.getDate() - 1);
+  const stations = [...new Set(SPOTS.map(s => s.tide))];
+  const tUrl = id => `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${id}&product=predictions&datum=MLLW&begin_date=${ymd(start)}&range=216&interval=hilo&units=english&time_zone=lst_ldt&format=json&application=surfcheck`;
+  const [marine, weather, ...tides] = await Promise.all([
+    getJSON(mUrl), getJSON(wUrl),
+    ...stations.map(id => getJSON(tUrl(id)).catch(() => null))
+  ]);
+  const tideMap = {};
+  stations.forEach((id, i) => {
+    const p = tides[i] && tides[i].predictions;
+    tideMap[id] = p ? p.map(x => ({t: parseLocal(x.t).getTime(), v: +x.v, type: x.type})) : null;
+  });
+  return {marine: [].concat(marine), weather: [].concat(weather), tides: tideMap, fetched: Date.now()};
+}
+
+// Turn raw arrays into per-spot hourly conditions
+function compute(raw){
+  const pref = +$("sizePref").value;
+  const times = raw.weather[0].hourly.time.map(parseLocal);
+  const daily = raw.weather[0].daily;
+  const suns = daily.time.map((d, i) => ({day: d, rise: parseLocal(daily.sunrise[i]), set: parseLocal(daily.sunset[i])}));
+  const isDay = t => suns.some(s => t >= new Date(s.rise.getTime() - 30*60000) && t <= new Date(s.set.getTime() + 15*60000));
+
+  // marine value with fallback to the nearest break that has data
+  const mval = (si, key, i) => {
+    for (let k = 0; k < SPOTS.length; k++){
+      for (const j of [si - k, si + k]){
+        const m = raw.marine[j]; if (!m) continue;
+        const v = m.hourly[key] && m.hourly[key][i];
+        if (v != null) return v;
+      }
+    }
+    return null;
+  };
+
+  return SPOTS.map((s, si) => {
+    const w = raw.weather[si].hourly;
+    const hours = times.map((t, i) => {
+      const comps = [
+        ["swell_wave_height","swell_wave_period","swell_wave_direction","Swell"],
+        ["secondary_swell_wave_height","secondary_swell_wave_period","secondary_swell_wave_direction","2nd swell"],
+        ["wind_wave_height","wind_wave_period","wind_wave_direction","Wind swell"]
+      ].map(([h,p,d,name]) => ({name, h: mval(si,h,i) || 0, T: mval(si,p,i) || 0, d: mval(si,d,i) || 0}))
+       .filter(c => c.h > 0.1);
+      if (!comps.length){
+        const h = mval(si,"wave_height",i) || 0;
+        comps.push({name:"Waves", h, T: mval(si,"wave_period",i) || 5, d: mval(si,"wave_direction",i) || s.facing});
+      }
+      comps.forEach(c => c.face = c.h * periodFactor(c.T) * exposure(c.d, s.facing, s.wrap) * s.gain);
+      const total = Math.sqrt(comps.reduce((a,c) => a + c.face * c.face, 0));
+      const dom = comps.reduce((a,c) => c.face > a.face ? c : a, comps[0]);
+      const windDominated = dom.name === "Wind swell";
+      const ws = w.wind_speed_10m[i] ?? 0, wd = w.wind_direction_10m[i] ?? 0, wg = w.wind_gusts_10m[i] ?? ws;
+      const wi = windInfo(ws, wd, s.facing);
+      const td = tideAt(raw.tides[s.tide], t);
+      const q = clamp(0.55 + 0.05 * dom.T, 0.75, 1.1) * (windDominated ? 0.88 : 1);
+      const gustF = (wg - ws > 12 && wi.label !== "Offshore" && wi.label !== "Glassy") ? 0.94 : 1;
+      let score = sizeScore(total, pref * (s.handles || 1)) * q * wi.f * gustF * tideFactor(td, s.tidePref);
+      if (total < 0.8) score = Math.min(score, 1);
+      score = clamp(score, 0, 10);
+      return {t, total, comps, dom, ws, wd, wg, wi, td, score, day: isDay(t),
+              temp: w.temperature_2m[i], sst: mval(si,"sea_surface_temperature",i), code: w.weather_code[i]};
+    });
+    return {spot: s, hours};
+  });
+}
+
+function sizeText(h){
+  if (h < 0.8) return "Flat";
+  let lo = Math.max(0, Math.round(h * 0.8)), hi = Math.max(1, Math.round(h * 1.2));
+  if (hi <= lo) hi = lo + 1;
+  if (lo === 0) return `${hi === 1 ? "Ankle–knee" : "0–" + hi + " ft"}`;
+  return `${lo}–${hi} ft`;
+}
+function crowdLevel(spot, t, score){
+  const m = t.getMonth(), dow = t.getDay();
+  let c = spot.crowd + ((dow === 0 || dow === 6) ? 1 : 0) + ((m >= 5 && m <= 8) ? 1 : 0) + (score >= 6 ? 1 : 0) - ((m >= 10 || m <= 2) ? 1 : 0);
+  return clamp(c, 1, 4);
+}
+const CROWD_WORDS = ["", "Quiet", "Some company", "Busy", "Packed"];
+function wetsuit(f){
+  if (f == null) return "";
+  if (f >= 72) return "Trunks";
+  if (f >= 65) return "Springsuit or 2mm";
+  if (f >= 58) return "3/2 full suit";
+  if (f >= 52) return "4/3 + boots";
+  if (f >= 46) return "5/4 hooded, boots, gloves";
+  return "5/4/3 hooded, 7mm boots, lobster mitts";
+}
+const arrowSvg = (deg, size=14) => `<svg width="${size}" height="${size}" viewBox="0 0 20 20" aria-hidden="true" style="vertical-align:-2px;transform:rotate(${deg+180}deg)"><path d="M10 2 L15 14 L10 11 L5 14 Z" fill="currentColor"/></svg>`;
+const ratingPill = s => `<span class="pill" style="background:${rcolor(s)}">${rating(s).label} <span class="mono" style="font-size:12px;opacity:.75">${s.toFixed(1)}</span></span>`;
+function crowdDots(n){ return `<span class="crowd" title="${CROWD_WORDS[n]}">${[1,2,3,4].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span>`; }
+function tideText(td){
+  if (!td) return "Tide n/a";
+  const w = tideWord(td);
+  return `${w[0].toUpperCase() + w.slice(1)} tide, ${td.rising ? "rising" : "dropping"} (${td.h.toFixed(1)} ft)`;
+}
+function why(h){
+  const parts = [];
+  parts.push(`${h.wi.label.toLowerCase()} ${compass(h.wd)} wind at ${Math.round(h.ws)} mph`);
+  parts.push(`${h.dom.h.toFixed(1)} ft at ${Math.round(h.dom.T)}s from the ${compass(h.dom.d)}`);
+  if (h.td) parts.push(`${tideWord(h.td)} tide ${h.td.rising ? "rising" : "dropping"}`);
+  return parts.join(", ");
+}
+
+// Plain-language reasons a break is working (or not) at a given hour
+function analyze(s, h){
+  const good = [], bad = [];
+  const pref = +$("sizePref").value;
+  const offDir = compass((s.facing + 180) % 360), faceDir = compass(s.facing);
+  // swell direction vs. the way the beach faces
+  const d = angDiff(h.dom.d, s.facing), src = `The ${h.dom.name.toLowerCase()} from the ${compass(h.dom.d)}`;
+  if (d <= 25) good.push(`${src} hits this ${faceDir}-facing break almost head-on, so it gets close to full size.`);
+  else if (d <= 45) good.push(`${src} comes in at a good angle for a ${faceDir}-facing break.`);
+  else if (d <= 80) bad.push(`${src} arrives ${Math.round(d)}° off this break's ${faceDir} aim, so it loses size and tends to run down the beach instead of peaking.`);
+  else bad.push(s.wrap ? `${src} has to bend around the point to get here, so only part of it makes it in.` : `${src} is mostly blocked here, since this beach faces ${faceDir}.`);
+  // period
+  const T = Math.round(h.dom.T);
+  if (T >= 10) good.push(`${T}-second period means real groundswell: more power and cleaner lines${s.reef ? " that wrap and peel along the rocks" : " that focus on the sandbars"}.`);
+  else if (T >= 8) good.push(`${T}-second period is decent, mid-range swell with enough push to make shape.`);
+  else if (T >= 7) bad.push(`${T}-second period is fairly short, so waves are softer and peakier with less shape.`);
+  else bad.push(`Only a ${T}-second period: short, weak wind swell that tends to be choppy and close out.`);
+  // size relative to the size you like and what the spot handles
+  const eff = h.total / (pref * (s.handles || 1));
+  if (h.total < 0.8) bad.push("Basically flat.");
+  else if (eff < 2) bad.push(`${sizeText(h.total)} is on the small side${(s.handles || 1) > 1.2 ? ". This spot needs a bigger swell to really break" : ""}.`);
+  else if (eff <= 7) good.push(`${sizeText(h.total)} is a good size for this break.`);
+  else bad.push(`${sizeText(h.total)} is more than this break handles well${(s.handles || 1) < 1.2 ? "; sandbar beaches start to close out at this size" : ""}.`);
+  // wind
+  const ws = Math.round(h.ws), wd = compass(h.wd);
+  const L = h.wi.label;
+  if (L === "Glassy") good.push(`Wind is under 4 mph, so the surface is glassy.`);
+  else if (L === "Offshore"){
+    good.push(`${wd} wind at ${ws} mph blows offshore here (from the land out to sea), which holds the waves up and grooms the faces.`);
+    if (ws > 20) bad.push(`At ${ws} mph the offshore is strong: harder to paddle into waves and spray off the top.`);
+  }
+  else if (L === "Cross-offshore") good.push(`${wd} at ${ws} mph is cross-offshore here, which is still clean. Ideal would be straight ${offDir}.`);
+  else if (L === "Cross-shore"){
+    if (ws <= 8) good.push(`${wd} at ${ws} mph is cross-shore but light, so only a little texture.`);
+    else bad.push(`${wd} at ${ws} mph blows sideways along this beach, adding bumps and side-chop. This break wants ${offDir} wind.`);
+  } else {
+    if (ws <= 6) bad.push(`Light ${L.toLowerCase()} ${wd} wind (${ws} mph) adds some texture. This break wants ${offDir} wind.`);
+    else bad.push(`${wd} at ${ws} mph is ${L.toLowerCase()} here: it blows from the ocean onto the beach and crumbles the waves. This break wants ${offDir} wind.`);
+  }
+  // tide
+  const td = h.td;
+  if (td){
+    const w = tideWord(td);
+    if (s.tidePref === "lowmid"){
+      if (td.pos >= 0.15 && td.pos <= 0.6) good.push(`${w[0].toUpperCase() + w.slice(1)} tide is the sweet spot for these sandbars.`);
+      else if (td.pos > 0.75) bad.push(`High tide puts too much water over the bars here, so waves get fat or dump on the shore. Best low to mid.`);
+      else bad.push(`Dead low tide can make it shallow and closed-out here. Best a little higher, low to mid.`);
+    } else if (s.tidePref === "incoming"){
+      if (td.rising) good.push(`Incoming tide flows the same way as the waves, which smooths them out near the inlet.`);
+      else bad.push(`Outgoing tide: the inlet current runs against the swell, making it steep and choppy and pulling hard toward the channel.`);
+    } else {
+      if (td.pos >= 0.12 && td.pos <= 0.8) good.push(`Mid tide suits this break.`);
+      else if (td.pos > 0.8) bad.push(`High tide tends to slow it down or turn it into shorebreak here.`);
+      else bad.push(`Dead low can get shallow and close out here.`);
+    }
+  }
+  return {good, bad};
+}
+
+// ---------- render ----------
+function render(){
+  if (!DATA) return;
+  const res = compute(DATA);
+  const quiet = $("quiet").checked;
+  const now = new Date();
+  let idx = res[0].hours.findIndex(h => h.t > now) - 1;
+  if (idx < 0) idx = 0;
+  const nowIsDay = res[0].hours[idx].day;
+
+  // When it's dark, rank the next daylight hour instead
+  let rankIdx = idx;
+  if (!nowIsDay){ const n = res[0].hours.findIndex((h,i) => i > idx && h.day); if (n > 0) rankIdx = n; }
+  const rankT = res[0].hours[rankIdx].t;
+  const rankVal = r => r.hours[rankIdx].score - (quiet ? 0.7 * (crowdLevel(r.spot, rankT, r.hours[rankIdx].score) - 1) : 0);
+  const ranked = res.filter(r => !r.spot.far).sort((a,b) => rankVal(b) - rankVal(a));
+  const montauk = res.filter(r => r.spot.far).sort((a,b) => b.hours[rankIdx].score - a.hours[rankIdx].score);
+  if (store.get("open") === null && !OPEN.size){ OPEN.add(ranked[0].spot.id); store.set("open", [...OPEN]); }
+
+  $("updated").textContent = `Data pulled ${fmtTime(new Date(DATA.fetched))} · ${dayFull(now)}`;
+  $("listTitle").textContent = nowIsDay ? "Breaks ranked right now" : `Breaks ranked for first light, ${dayName(rankT)} ${fmtHour(rankT)}`;
+
+  // Conditions strip (offshore, using the Fire Island area as the regional read)
+  const ref = res.find(r => r.spot.id === "rm3").hours[idx];
+  const sstF = ref.sst != null ? ref.sst * 9/5 + 32 : null;
+  const sun = DATA.weather[0].daily;
+  const todayRise = parseLocal(sun.sunrise[0]), todaySet = parseLocal(sun.sunset[0]);
+  const sw = ref.comps.find(c => c.name === "Swell") || ref.dom;
+  let nextTide = "";
+  const fiTides = DATA.tides["8515186"];
+  if (fiTides){ const n = fiTides.find(x => x.t > now.getTime()); if (n) nextTide = `${n.type === "H" ? "High" : "Low"} ${fmtTime(new Date(n.t))}`; }
+  $("strip").innerHTML = [
+    ["Main swell", `${sw.h.toFixed(1)} ft @ ${Math.round(sw.T)}s`, `from ${compass(sw.d)} (${Math.round(sw.d)}°) offshore`],
+    ["Wind", `${arrowSvg(ref.wd)} ${compass(ref.wd)} ${Math.round(ref.ws)} mph`, `gusts ${Math.round(ref.wg)} · ${ref.wi.label.toLowerCase()} at Fire Island`],
+    ["Water", sstF != null ? `${Math.round(sstF)}°F` : "n/a", wetsuit(sstF)],
+    ["Air", `${Math.round(ref.temp)}°F`, `Sun ${fmtTime(todayRise)} – ${fmtTime(todaySet)}`],
+    ["Next tide", nextTide || "n/a", "Fire Island Inlet area"]
+  ].map(([k,v,s]) => `<div><span class="eyebrow">${k}</span><span class="v">${v}</span><span class="s">${esc(s)}</span></div>`).join("");
+
+  // Verdict
+  const best = ranked[0], bh = best.hours[rankIdx];
+  const quietPick = ranked.filter(r => crowdLevel(r.spot, rankT, r.hours[rankIdx].score) <= 2 && r !== best)
+                            .sort((a,b) => b.hours[rankIdx].score - a.hours[rankIdx].score)[0];
+  const qh = quietPick && quietPick.hours[rankIdx];
+  const goLine = bh.score >= 6 ? "Worth the drive." : bh.score >= 4.5 ? "Surfable. Good enough if you've got the itch." : bh.score >= 3 ? "Marginal. Probably a longboard or skip it." : "Not worth it right now.";
+  $("verdict").innerHTML = `
+    <div>
+      <span class="eyebrow">${nowIsDay ? "Best call now" : "Best call at first light"}</span>
+      <span class="big">${esc(best.spot.name)}</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ratingPill(bh.score)}<b class="mono">${sizeText(bh.total)}</b></div>
+      <p>${goLine} ${esc(why(bh)).replace(/^./, c => c.toUpperCase())}.</p>
+    </div>
+    <div>
+      <span class="eyebrow">Quieter pick</span>
+      ${quietPick ? `<span class="big">${esc(quietPick.spot.name)}</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ratingPill(qh.score)}<b class="mono">${sizeText(qh.total)}</b><span class="muted">${CROWD_WORDS[crowdLevel(quietPick.spot, rankT, qh.score)]}</span></div>
+      <p>${Math.abs(qh.score - bh.score) < 1 ? "About as good as the top spot, with fewer people." : qh.score < bh.score ? `About ${(bh.score - qh.score).toFixed(1)} points behind the top spot, but less crowded.` : "Scoring higher and less crowded."}</p>` : `<p class="muted">No quieter option stands out.</p>`}
+    </div>
+    ${montauk.length ? (() => {
+      const mt = montauk[0], mh = mt.hours[rankIdx];
+      const worth = mh.score >= 7.5 && mh.score >= bh.score + 0.8;
+      const line = worth ? `Worth the drive if you're free: ${mh.score.toFixed(1)} out east vs ${bh.score.toFixed(1)} at your best local spot.`
+        : mh.score >= 6 ? `Good out east, but not enough better than home to justify the drive (${mh.score.toFixed(1)} vs ${bh.score.toFixed(1)}).`
+        : "Stay local. Nothing out east beats the drive.";
+      return `<div class="mtk ${worth ? "go" : ""}">
+        <span class="eyebrow">Montauk check</span>
+        <span class="big">${worth ? esc(mt.spot.name) : "Not today"}</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${worth ? ratingPill(mh.score) + `<b class="mono">${sizeText(mh.total)}</b>` : `<span class="muted">Best out east: ${esc(mt.spot.name)}</span> ${ratingPill(mh.score)}`}</div>
+        <p>${line}</p></div>`;
+    })() : ""}`;
+
+  $("legend").innerHTML = [...RATINGS].reverse().map(r => `<span class="pill" style="background:var(--r-${r.key})">${r.label}</span>`).join("");
+
+  // Ranked lists
+  const rowHtml = (r, n) => {
+    const h = r.hours[rankIdx], s = r.spot, open = OPEN.has(s.id);
+    const cl = crowdLevel(s, rankT, h.score);
+    return `<div class="row">
+      <button class="head" data-id="${s.id}" aria-expanded="${open}">
+        <span class="rank">${n + 1}</span>
+        <span class="name"><b>${esc(s.name)} ${s.isNew ? '<span class="badge">New to you</span>' : ""}</b><span>${esc(s.area)}</span></span>
+        <span class="pcell">${ratingPill(h.score)}</span>
+        <span class="scell"><span class="size">${sizeText(h.total)}</span>
+          <span class="cell"><span class="mono">${h.dom.h.toFixed(1)}ft ${Math.round(h.dom.T)}s</span> ${arrowSvg(h.dom.d, 12)} ${compass(h.dom.d)}<small>${h.dom.name.toLowerCase()}</small></span></span>
+        <span class="wcell"><span class="cell">${arrowSvg(h.wd, 12)} ${compass(h.wd)} <span class="mono">${Math.round(h.ws)}</span> mph<small>${h.wi.label}${h.wg - h.ws > 8 ? `, gusts ${Math.round(h.wg)}` : ""}</small></span>
+          <span class="cell">${tideText(h.td)}<small>${CROWD_WORDS[cl]}</small></span>
+          <span class="cell hide-sm">${crowdDots(cl)}</span></span>
+      </button>
+      ${open ? detail(r, idx, rankIdx) : ""}
+    </div>`;
+  };
+  $("list").innerHTML = ranked.map(rowHtml).join("");
+  $("mlist").innerHTML = montauk.map(rowHtml).join("");
+  document.querySelectorAll(".list button.head").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.id; OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); store.set("open", [...OPEN]); render();
+  }));
+
+  renderWindows(res, idx);
+  renderBoard(res);
+}
+
+function detail(r, idx, rankIdx){
+  const s = r.spot, hrs = r.hours.slice(idx, idx + 72);
+  const W = 72 * 12 + 40, H = 190, top = 14, barH = 96, base = top + barH;
+  const maxH = Math.max(6, ...hrs.map(h => h.total * 1.2));
+  const y = v => base - (v / maxH) * barH;
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="72 hour forecast for ${esc(s.name)}">`;
+  // night shading
+  hrs.forEach((h,i) => { if (!h.day) svg += `<rect x="${32 + i*12}" y="${top}" width="12" height="${barH + 74}" fill="var(--night)"/>`; });
+  // grid
+  const step = maxH > 12 ? 4 : 2;
+  for (let v = 0; v <= maxH; v += step){
+    svg += `<line x1="32" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="26" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--mono)">${v}</text>`;
+  }
+  svg += `<text x="2" y="${top - 2}" font-size="10" fill="var(--muted)">ft</text>`;
+  // bars
+  hrs.forEach((h,i) => {
+    const hi = h.total * 1.2, lo = h.total * 0.8;
+    svg += `<rect x="${33 + i*12}" y="${y(hi)}" width="10" height="${Math.max(1, base - y(hi))}" rx="2" fill="${rcolor(h.score)}" opacity="${h.day ? 1 : .55}"><title>${dayName(h.t)} ${fmtHour(h.t)}: ${sizeText(h.total)}, ${rating(h.score).label} (${h.score.toFixed(1)}), ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph</title></rect>`;
+  });
+  // wind arrows every 3h
+  const wy = base + 22;
+  svg += `<text x="2" y="${wy + 4}" font-size="10" fill="var(--muted)">wind</text>`;
+  hrs.forEach((h,i) => { if (i % 3 === 0){
+    const col = h.wi.label === "Offshore" || h.wi.label === "Glassy" || h.wi.label === "Cross-offshore" ? "var(--r-good)" : h.wi.label === "Cross-shore" ? "var(--r-fair)" : "var(--r-poor)";
+    svg += `<g transform="translate(${39 + i*12},${wy}) rotate(${h.wd + 180})"><path d="M0 -6 L4 5 L0 2.5 L-4 5 Z" fill="${col}"/></g><text x="${39 + i*12}" y="${wy + 18}" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="var(--mono)">${Math.round(h.ws)}</text>`;
+  }});
+  // tide line
+  const ty0 = base + 46, tyH = 22;
+  const tvals = hrs.map(h => h.td ? h.td.h : null);
+  const tv = tvals.filter(v => v != null);
+  if (tv.length){
+    const tmin = Math.min(...tv), tmax = Math.max(...tv);
+    const ty = v => ty0 + tyH - (v - tmin) / Math.max(0.1, tmax - tmin) * tyH;
+    const pts = tvals.map((v,i) => v == null ? null : `${38 + i*12},${ty(v).toFixed(1)}`).filter(Boolean).join(" ");
+    svg += `<text x="2" y="${ty0 + 14}" font-size="10" fill="var(--muted)">tide</text><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"/>`;
+  }
+  // day labels
+  hrs.forEach((h,i) => { if (h.t.getHours() === 0 || i === 0) svg += `<text x="${33 + i*12}" y="${H - 2}" font-size="11" font-weight="600" fill="var(--ink)">${dayName(h.t)}</text>`;
+                          else if (h.t.getHours() % 6 === 0) svg += `<text x="${33 + i*12}" y="${H - 2}" font-size="10" fill="var(--muted)">${fmtHour(h.t)}</text>`; });
+  svg += `</svg>`;
+
+  const cur = r.hours[idx];
+  const swells = cur.comps.map(c => `${c.name}: ${c.h.toFixed(1)} ft @ ${Math.round(c.T)}s ${compass(c.d)}`).join(" · ");
+  const tides = (DATA.tides[s.tide] || []).filter(x => x.t > Date.now()).slice(0, 4)
+                .map(x => `${x.type === "H" ? "High" : "Low"} ${dayName(new Date(x.t))} ${fmtTime(new Date(x.t))} (${x.v.toFixed(1)} ft)`).join(" · ");
+  const maps = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
+  const prefWord = {lowmid:"low to mid tide", mid:"mid tide", incoming:"incoming tide"}[s.tidePref];
+  const rh = r.hours[rankIdx], a = analyze(s, rh);
+  const verdictWord = rh.score >= 6 ? "Why it's working" : rh.score >= 3 ? "Why it's so-so" : "Why it's not working";
+  const li = arr => arr.length ? arr.map(x => `<li>${esc(x)}</li>`).join("") : `<li class="muted">Nothing major.</li>`;
+  return `<div class="detail">
+    <div class="why">
+      <h3>${verdictWord} ${rankIdx !== idx ? `<span class="muted" style="font-weight:500;font-size:15px">at ${fmtHour(rh.t)} ${dayName(rh.t)}</span>` : ""}</h3>
+      <div class="whycols">
+        <div><span class="eyebrow ok">Working for it</span><ul>${li(a.good)}</ul></div>
+        <div><span class="eyebrow no">Working against it</span><ul>${li(a.bad)}</ul></div>
+      </div>
+      <p><b>What this break likes, and why:</b> ${esc(s.likes)}</p>
+      <p class="muted" style="font-size:14px"><b>Quick version:</b> wind from the ${compass((s.facing + 180) % 360)}, swell from the ${compass(s.facing - 25)} to ${compass(s.facing + 25)}, ${prefWord}. ${esc(s.notes)}</p>
+    </div>
+    <div class="chartbox">${svg}</div>
+    <p class="muted" style="font-size:14px"><b>Now:</b> ${esc(swells)}<br><b>Tides (${esc(TIDE_NAMES[s.tide])}):</b> ${esc(tides || "n/a")}</p>
+    <div class="links"><a href="${maps}" target="_blank" rel="noopener">Directions</a></div>
+  </div>`;
+}
+
+function dayBests(r){
+  // best daylight hour per calendar day
+  const out = new Map();
+  r.hours.forEach(h => {
+    if (!h.day) return;
+    const k = h.t.toDateString();
+    if (!out.has(k) || h.score > out.get(k).score) out.set(k, h);
+  });
+  return out;
+}
+
+function renderWindows(res, idx){
+  const now = new Date(), cutoff = new Date(now.getTime() + 5 * 86400000);
+  const quiet = $("quiet").checked;
+  const wins = [];
+  res.forEach(r => {
+    // find runs of daylight hours at or near the day's peak
+    const hrs = r.hours.filter((h,i) => i >= idx && h.t < cutoff && h.day);
+    const byDay = {};
+    hrs.forEach(h => (byDay[h.t.toDateString()] ||= []).push(h));
+    Object.values(byDay).forEach(list => {
+      const peak = list.reduce((a,h) => h.score > a.score ? h : a, list[0]);
+      if (peak.score < (r.spot.far ? 7.5 : 4.5)) return; // Montauk only shows up when it's really good
+      const good = list.filter(h => h.score >= peak.score - 0.6);
+      const start = good[0].t, end = new Date(good[good.length - 1].t.getTime() + 3600000);
+      const cl = crowdLevel(r.spot, peak.t, peak.score);
+      wins.push({r, peak, start, end, cl, rank: peak.score - (quiet ? 0.7 * (cl - 1) : 0) - (r.spot.far ? 1 : 0)});
+    });
+  });
+  wins.sort((a,b) => b.rank - a.rank);
+  // keep variety: max 2 windows per break
+  const per = {}, top = [];
+  for (const w of wins){ if ((per[w.r.spot.id] = (per[w.r.spot.id] || 0) + 1) <= 2) top.push(w); if (top.length >= 8) break; }
+  $("windows").innerHTML = top.length ? top.map(w => `<div class="win">
+      <span class="eyebrow">${dayFull(w.peak.t)} · ${fmtHour(w.start)}–${fmtHour(w.end)}</span>
+      <b>${esc(w.r.spot.name)} ${w.r.spot.far ? '<span class="badge">Montauk drive</span>' : ""}</b>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ratingPill(w.peak.score)}<span class="mono">${sizeText(w.peak.total)}</span></div>
+      <span class="muted" style="font-size:13px">${esc(why(w.peak))} · ${CROWD_WORDS[w.cl]}</span>
+    </div>`).join("") : `<div class="win"><b>Nothing above Fair in the next 5 days</b><span class="muted">The board below shows the best of what's out there.</span></div>`;
+}
+
+function renderBoard(res){
+  const days = [];
+  const first = res[0].hours[0].t;
+  for (let d = 0; d < 6; d++){ const t = new Date(first); t.setDate(t.getDate() + d); days.push(t); }
+  const today = new Date().toDateString();
+  let html = `<table><thead><tr><th style="text-align:left;padding-left:12px">Break</th>${days.map(d => `<th>${d.toDateString() === today ? "Today" : dayName(d)}<br><span style="font-weight:400">${d.getMonth()+1}/${d.getDate()}</span></th>`).join("")}</tr></thead><tbody>`;
+  res.forEach((r, i) => {
+    const b = dayBests(r);
+    if (r.spot.far && !(res[i-1] && res[i-1].spot.far)) html += `<tr><td colspan="${days.length + 1}" class="grp">Montauk · drive days</td></tr>`;
+    html += `<tr><td class="sp">${esc(r.spot.name)}</td>${days.map(d => {
+      const h = b.get(d.toDateString());
+      if (!h) return `<td class="muted">–</td>`;
+      return `<td><div class="c" style="background:${rcolor(h.score)}" title="${rating(h.score).label} ${h.score.toFixed(1)} · ${h.wi.label} ${compass(h.wd)} ${Math.round(h.ws)} mph"><b>${sizeText(h.total)}</b><span>${fmtHour(h.t)} · ${compass(h.wd)} ${Math.round(h.ws)}</span></div></td>`;
+    }).join("")}</tr>`;
+  });
+  html += `</tbody></table>`;
+  $("board").innerHTML = html;
+}
+
+// ---------- boot ----------
+async function refresh(){
+  const btn = $("refresh"); btn.disabled = true; btn.textContent = "Loading…";
+  try {
+    const raw = await loadAll();
+    DATA = raw; store.set("cache", raw);
+    $("error").hidden = true;
+  } catch(e){
+    const msg = navigator.onLine === false ? "You're offline." : `Couldn't reach the forecast service (${esc(e.message)}).`;
+    $("error").innerHTML = `<b>${msg}</b> ${DATA ? "Showing the last data pulled." : "Check your connection and press Refresh."}`;
+    $("error").hidden = false;
+  }
+  btn.disabled = false; btn.textContent = "Refresh";
+  render();
+}
+try { const p = store.get("prefs"); if (p){ $("sizePref").value = p.size; $("quiet").checked = !!p.quiet; } } catch(e){}
+const savePrefs = () => store.set("prefs", {size: $("sizePref").value, quiet: $("quiet").checked});
+$("sizePref").addEventListener("change", () => { savePrefs(); render(); });
+$("quiet").addEventListener("change", () => { savePrefs(); render(); });
+$("refresh").addEventListener("click", refresh);
+const cached = store.get("cache");
+if (cached && cached.weather){ DATA = cached; try { render(); } catch(e){} }
+refresh();
+setInterval(refresh, 30 * 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && DATA && Date.now() - DATA.fetched > 20 * 60000) refresh(); });
+</script>
+</body>
+</html>
