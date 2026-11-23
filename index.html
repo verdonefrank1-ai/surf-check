@@ -319,12 +319,30 @@ const SPOTS = [
  {id:"cup",  name:"Cupsogue", area:"Moriches Inlet · east side", lat:40.768, lon:-72.735, facing:158, tide:"8513398", tidePref:"incoming", crowd:2, gain:1.03, handles:1.05,
   likes:"Faces SSE, so it lines up well with E to S swells, and NW wind is offshore. The Moriches Inlet jetty and the sand shoal off the inlet help shape cleaner peaks. Incoming tide works best; the outgoing current is strong and chops things up.",
   notes:"Strong current near the inlet mouth."},
- {id:"dwh",  name:"Dune Road, Westhampton", area:"Pikes, Rogers and the village beaches", lat:40.795, lon:-72.640, facing:157, tide:"8513398", tidePref:"mid", crowd:1, gain:0.98, handles:1.0,
-  likes:"Faces SSE with fairly steep beaches. E, SE and S swells all reach it, and NW wind is offshore. The steep beach means high tide often turns it into a hard shorebreak, so mid tide is usually best.",
-  notes:"Very few people outside summer. Village parking rules apply in season."},
+ {id:"pik",  name:"Pikes Beach", area:"Dune Road · Westhampton Dunes", lat:40.777, lon:-72.700, facing:158, tide:"8513398", tidePref:"mid", crowd:1, gain:0.98, handles:1.0,
+  likes:"Open beach on Westhampton Dunes, just east of Cupsogue and west of the jetty field. It faces SSE, so E to S swells reach it, and NW wind is offshore. The beach here has been rebuilt with pumped sand, so it's steep and the bars shift; mid tide usually keeps it from turning into shorebreak.",
+  notes:"Small town lot. Quiet, and it takes the overflow when Cupsogue fills up."},
+ {id:"j4",   name:"Lashley's (Jetty 4)", area:"Dune Road · Westhampton Beach", lat:40.788, lon:-72.663, facing:157, tide:"8513398", tidePref:"lowmid", crowd:2, gain:1.0, handles:1.05,
+  likes:"A sand beach break set up by one of the Westhampton jetties, with rights and lefts off the sandbar the jetty holds. It wants SSE swell and N to NW wind. The jetty keeps the bar in place, so it's more consistent than the open beach. Low to mid tide on the dropping tide is best; high tide fills it in.",
+  notes:"Few people on weekdays, busier on weekends, and some localism. Lifeguards limit surfing in summer; it's best in the fall."},
+ {id:"rog",  name:"Rogers Beach", area:"Dune Road · Westhampton Beach village", lat:40.798, lon:-72.623, facing:157, tide:"8513398", tidePref:"mid", crowd:2, gain:0.98, handles:1.0,
+  likes:"The village's main beach, in the middle of the Westhampton jetty field. It faces SSE, takes E to S swell, and NW wind is offshore. The jetties hold sandbars in place, but the beach is steep, so high tide often turns it into shorebreak. Mid tide is usually best.",
+  notes:"Lifeguards and the snack bar make summer surfing limited. Village parking rules apply in season."},
+ {id:"quo",  name:"Quogue", area:"Dune Road · Quogue village beach and beach club stretch", lat:40.808, lon:-72.596, facing:159, tide:"8513398", tidePref:"mid", crowd:1, gain:0.98, handles:1.0,
+  likes:"A long, straight, steep beach with deep water close in, facing SSE. It picks up E to S swell and NW wind is offshore. With no jetties to hold the sand, the peaks move around with the bars, and high tide tends to turn it into a hard shorebreak. Mid tide is usually best.",
+  notes:"Very few surfers. Parking is mostly village or club permit in season, so it's easier in the off-season."},
+ {id:"irr",  name:"I Road", area:"Dune Road · East Quogue (lettered roads)", lat:40.829, lon:-72.522, facing:160, tide:"8512354", tidePref:"mid", crowd:1, gain:0.98, handles:0.95,
+  likes:"One of the lettered side roads off Dune Road in East Quogue. It's a sandbar beach break with rights and lefts, facing SSE. It takes E to S swell and NW wind is offshore. It's similar to K Road, a little less known, and the bars decide how good it is from week to week.",
+  notes:"Tiny parking areas off Dune Road; check the signs. Usually only a few people out."},
+ {id:"krd",  name:"K Road", area:"Dune Road · East Quogue / Hampton Bays", lat:40.832, lon:-72.511, facing:160, tide:"8512354", tidePref:"mid", crowd:3, gain:1.0, handles:0.95,
+  likes:"A well-known sandbar beach break with rights and lefts, facing SSE. It takes E, SE and S swell, and NW wind is offshore. It's one of the few Dune Road spots with a bar good enough to be worth riding when it's under chest high, and it works on most tides.",
+  notes:"A regional classic, very consistent, and it draws a crowd. Small parking area off Dune Road."},
  {id:"pon",  name:"Ponquogue", area:"Dune Road · Hampton Bays", lat:40.836, lon:-72.500, facing:156, tide:"8512354", tidePref:"mid", crowd:2, gain:1.0, handles:1.0,
   likes:"SSE-facing beach just west of Shinnecock Inlet. It takes E to S swell, NW wind is offshore, and it's usually mellower than the inlet on the same swell. Mid tide works best.",
   notes:"Less competitive than the inlet."},
+ {id:"bwl",  name:"The Bowl", area:"Dune Road · east end of Ponquogue, by the Shinnecock west jetty", lat:40.840, lon:-72.480, facing:160, tide:"8512354", tidePref:"incoming", crowd:2, gain:1.08, handles:1.1,
+  likes:"A peak at the very end of Dune Road, where the Shinnecock Inlet's west jetty and the inlet shoal bend the swell into a hollow, ledgey wave over sand with some rock. It needs a solid SSE swell, likes NW to NNW wind, and is best on the rising tide toward mid to high. It gets powerful and hollow fast once it has size.",
+  notes:"Some localism, rips along the jetty and buoys nearby. Intermediate to advanced. Free parking at the end of Dune Road."},
  {id:"shi",  name:"Shinnecock Inlet, east jetty", area:"Dune Road · Southampton", lat:40.839, lon:-72.474, facing:158, tide:"8512354", tidePref:"lowmid", crowd:3, gain:1.15, handles:1.1, isNew:true,
   likes:"The east jetty and the inlet's sand shoal combine to make a defined, powerful peak instead of shifting beach-break peaks, so it gets bigger and hollower than the beaches nearby. It lines up best with S to SE swell and NW wind. Low to mid tide makes it hollow; high tide softens it.",
   notes:"Draws a crowd when it's on, and it can be heavy."},
@@ -345,7 +363,7 @@ const SPOTS = [
 // ---------- Where you're leaving from ----------
 const DEFAULT_ORIGIN = {name:"Rocky Point", lat:40.9526, lon:-72.9254};
 // Rocky Point fallback times (no traffic), used if the route service can't be reached
-const DRIVE_RP = {atl:85, lbt:80, lido:75, jbw:70, tob:60, gil:55, dem:60, rm3:45, smp:30, cup:40, dwh:40, pon:50, shi:55, dit:110, ter:110, tur:115, nob:115};
+const DRIVE_RP = {atl:85, lbt:80, lido:75, jbw:70, tob:60, gil:55, dem:60, rm3:45, smp:30, cup:40, pik:40, j4:40, rog:40, quo:45, irr:45, krd:50, pon:50, bwl:50, shi:55, dit:110, ter:110, tur:115, nob:115};
 const WALK = {dem:15}; // Democrat Point: walk west from Field 5
 let ORIGIN = DEFAULT_ORIGIN, DRIVES_SRC = "estimate";
 try { const o = JSON.parse(localStorage.getItem("origin")); if (o && isFinite(o.lat) && isFinite(o.lon)) ORIGIN = o; } catch(e){}
@@ -363,7 +381,7 @@ function estimateDrives(){
 }
 async function fetchDrives(){
   const key = "drives:" + ORIGIN.lat.toFixed(3) + "," + ORIGIN.lon.toFixed(3);
-  try { const c = JSON.parse(localStorage.getItem(key)); if (c && Date.now() - c.at < 30 * 86400000) return {d: c.d, src: "route"}; } catch(e){}
+  try { const c = JSON.parse(localStorage.getItem(key)); if (c && Date.now() - c.at < 30 * 86400000 && SPOTS.every(s => s.id in c.d)) return {d: c.d, src: "route"}; } catch(e){}
   const coords = [`${ORIGIN.lon},${ORIGIN.lat}`, ...SPOTS.map(s => `${s.lon},${s.lat}`)].join(";");
   const r = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&annotations=duration`);
   if (!r.ok) throw new Error("route service " + r.status);
@@ -691,7 +709,7 @@ function analyze(s, h){
 
 // ---------- wave character: lefts vs rights, shape, ride length ----------
 // How steep/punchy each break tends to be (0 mellow ... 1 heavy)
-const STEEP = {atl:0.6, lbt:0.6, lido:0.5, jbw:0.65, tob:0.5, gil:0.6, dem:0.6, rm3:0.5, smp:0.6, cup:0.7, dwh:0.7, pon:0.45, shi:0.95, dit:0.2, ter:0.8, tur:0.7, nob:0.6};
+const STEEP = {atl:0.6, lbt:0.6, lido:0.5, jbw:0.65, tob:0.5, gil:0.6, dem:0.6, rm3:0.5, smp:0.6, cup:0.7, pik:0.7, j4:0.65, rog:0.7, quo:0.75, irr:0.55, krd:0.55, pon:0.45, bwl:0.9, shi:0.95, dit:0.2, ter:0.8, tur:0.7, nob:0.6};
 // Signed angle of swell vs. the way the beach faces. Positive = swell from the surfer's right side
 // when looking out to sea (west side of a south-facing beach), so waves peel to the surfer's right.
 const signedOff = (dir, facing) => ((dir - facing) % 360 + 540) % 360 - 180;
@@ -747,8 +765,14 @@ const PADDLE = {
   rm3:{k:1.0,  tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
   smp:{k:1.15, tip:"Steep beach with a short, hard shorebreak. Wait for the lull and get through the inside fast."},
   cup:{k:1.3,  tip:"Deep, steep beach plus inlet current. The inside can turn into a washing machine; wait for a lull and sprint, and use the jetty rip if it's running."},
-  dwh:{k:1.25, tip:"Steep beach, often with no clear channel. Expect a lot of duck-diving on bigger days."},
+  pik:{k:1.25, tip:"Steep, rebuilt beach, often with no clear channel. Expect a lot of duck-diving on bigger days."},
+  j4:{k:1.0,   tip:"Paddle out alongside the jetty, where the rip running out works like a conveyor belt."},
+  rog:{k:1.1,  tip:"Use the rip along one of the jetties to get out; the steep inside can pound at high tide."},
+  quo:{k:1.3,  tip:"Steep beach with deep water close in and no jetties. The inside can be a washing machine; wait for a lull and go hard."},
+  irr:{k:1.05, tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
+  krd:{k:1.05, tip:"Find the rip channel between bars (darker, flatter water) and go during a lull."},
   pon:{k:1.3,  tip:"Steep beach with a pounding inside on solid days and few channels to help."},
+  bwl:{k:1.2,  tip:"Paddle out near the jetty where the current runs out, but watch the rip and the rocks. Don't get caught inside on a set."},
   shi:{k:1.1,  tip:"Paddle out by the jetty where the current runs out. It's a heavy wave, so don't get caught inside on a set."},
   dit:{k:0.7,  tip:"Easy paddle over sand and cobble. Watch the rocks at low tide."},
   ter:{k:1.2,  tip:"Rocky entry at the bottom of the bluff. Pick your way out carefully."},
@@ -805,7 +829,7 @@ function dirExplain(h, s){
 
 // ---------- render ----------
 function render(){
-  if (!DATA) return;
+  if (!DATA || DATA.weather.length !== SPOTS.length) return;
   const res = compute(DATA);
   const quiet = $("quiet").checked;
   const now = new Date();
@@ -1397,7 +1421,7 @@ $("sizePref").addEventListener("change", () => { savePrefs(); render(); });
 $("quiet").addEventListener("change", () => { savePrefs(); render(); });
 $("refresh").addEventListener("click", refresh);
 const cached = store.get("cache");
-if (cached && cached.weather){ DATA = cached; try { render(); } catch(e){} }
+if (cached && cached.weather && cached.weather.length === SPOTS.length && cached.marine.length === SPOTS.length){ DATA = cached; try { render(); } catch(e){} }
 refresh();
 setInterval(refresh, 30 * 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && DATA && Date.now() - DATA.fetched > 20 * 60000) refresh(); });
