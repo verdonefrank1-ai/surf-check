@@ -192,6 +192,24 @@ footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:
 footer p{margin:0}
 .err{background:var(--surface);border:1px solid var(--r-poor);border-radius:10px;padding:12px 14px}
 section{display:flex;flex-direction:column;gap:10px}
+/* collapsible sections */
+.fold{scroll-margin-top:64px}
+.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;padding:6px 36px 6px 0;position:relative;border-bottom:1px solid var(--line);user-select:none}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary h2{font-size:22px}
+.fold .peek{color:var(--muted);font-size:14px;min-width:0}
+.fold[open] .peek{display:none}
+.fold .chev{display:block;position:absolute;right:6px;top:50%;width:12px;height:12px;margin-top:-8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+.fold[open] .chev{transform:rotate(-135deg);margin-top:-2px}
+.fold>summary:hover .chev{border-color:var(--accent)}
+.foldbody{display:flex;flex-direction:column;gap:10px;padding-top:12px}
+.jump{position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);margin:-8px 0}
+.jumpchips{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+.jumpchips::-webkit-scrollbar{display:none}
+.jump a,.jump button{flex:none;font:inherit;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;white-space:nowrap}
+.jump a:hover,.jump button:hover{border-color:var(--accent)}
+.jumpall{display:flex;gap:6px;flex:none}
+@media (max-width:640px){.jumpall button{padding:5px 8px}}
 .sechead{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -225,6 +243,16 @@ section{display:flex;flex-direction:column;gap:10px}
   </header>
 
   <div id="error" hidden class="err"></div>
+  <nav class="jump" id="jump" aria-label="Jump to section">
+    <div class="jumpchips">
+      <a href="#f-trip">Trip</a><a href="#f-best">Best call</a><a href="#f-ew">East/West</a><a href="#f-cond">Conditions</a><a href="#f-list">Breaks</a><a href="#f-win">Windows</a><a href="#f-board">6-day</a><a href="#f-mtk">Montauk</a>
+    </div>
+    <div class="jumpall"><button type="button" id="foldAll">Collapse all</button></div>
+  </nav>
+
+  <details class="fold" id="f-trip" open>
+    <summary><h2>Your trip</h2><span class="peek" id="pk-trip"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody">
   <div class="origin">
     <div class="ocur"><span class="eyebrow">Leaving from</span><b id="originName">Rocky Point</b><span class="muted" id="originSrc" style="font-size:12px"></span></div>
     <form class="ofrm" id="originForm" autocomplete="off">
@@ -249,32 +277,55 @@ section{display:flex;flex-direction:column;gap:10px}
     </div>
     <div id="whenSum" class="whensum"></div>
   </div>
-  <div class="ew" id="eastwest"></div>
-  <div class="strip" id="strip"></div>
-  <div class="verdict" id="verdict"></div>
-
-  <section>
-    <div class="sechead">
-      <h2 id="listTitle">Breaks ranked right now</h2>
-      <div class="legend" id="legend"></div>
     </div>
-    <div class="list" id="list"></div>
-  </section>
+  </details>
 
-  <section>
-    <div class="sechead"><h2>Montauk drive days</h2><span class="muted" style="font-size:14px">Never the top pick. Flagged above only when it's clearly better than home.</span></div>
-    <div class="list" id="mlist"></div>
-  </section>
+  <details class="fold" id="f-best" open>
+    <summary><h2>Best call</h2><span class="peek" id="pk-best"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody"><div class="verdict" id="verdict"></div></div>
+  </details>
 
-  <section>
-    <div class="sechead"><h2>Best windows, next 5 days</h2><span class="muted" style="font-size:14px">Daylight only</span></div>
-    <div class="windows" id="windows"></div>
-  </section>
+  <details class="fold" id="f-ew" open>
+    <summary><h2>East or west?</h2><span class="peek" id="pk-ew"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody"><div class="ew" id="eastwest"></div></div>
+  </details>
 
-  <section>
-    <div class="sechead"><h2>6-day board</h2><span class="muted" style="font-size:14px">Tap any cell for the full day, hour by hour. Each cell shows that day's best daylight hour. R = rights, L = lefts, + = mostly, L+R = even split</span></div>
-    <div class="board" id="board"></div>
-  </section>
+  <details class="fold" id="f-cond" open>
+    <summary><h2>Conditions</h2><span class="peek" id="pk-cond"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody"><div class="strip" id="strip"></div></div>
+  </details>
+
+  <details class="fold" id="f-list" open>
+    <summary><h2 id="listTitle">Breaks ranked right now</h2><span class="peek" id="pk-list"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody">
+      <div class="legend" id="legend"></div>
+      <div class="list" id="list"></div>
+    </div>
+  </details>
+
+  <details class="fold" id="f-win" open>
+    <summary><h2>Best windows, next 5 days</h2><span class="peek" id="pk-win"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody">
+      <span class="muted" style="font-size:14px">Daylight only. Tap one for the full day.</span>
+      <div class="windows" id="windows"></div>
+    </div>
+  </details>
+
+  <details class="fold" id="f-board" open>
+    <summary><h2>6-day board</h2><span class="peek">Every break, every day</span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody">
+      <span class="muted" style="font-size:14px">Tap any cell for the full day, hour by hour. Each cell shows that day's best daylight hour. R = rights, L = lefts, + = mostly, L+R = even split</span>
+      <div class="board" id="board"></div>
+    </div>
+  </details>
+
+  <details class="fold" id="f-mtk">
+    <summary><h2>Montauk drive days</h2><span class="peek" id="pk-mtk"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="foldbody">
+      <span class="muted" style="font-size:14px">Never the top pick. Flagged under Best call only when it's clearly better than home.</span>
+      <div class="list" id="mlist"></div>
+    </div>
+  </details>
   <div class="sheet" id="dayview" hidden role="dialog" aria-modal="true" aria-labelledby="dvTitle"></div>
 
   <footer>
@@ -946,7 +997,42 @@ function render(){
   renderDayView(res);
   renderWindows(res, idx);
   renderBoard(res);
+  updatePeeks();
 }
+
+// ---------- Collapsible sections ----------
+// One-line summary shown on a collapsed section's header
+function updatePeeks(){
+  const txt = sel => { const e = document.querySelector(sel); return e ? e.textContent.replace(/\s+/g, " ").trim() : ""; };
+  const set = (id, s) => { const e = $(id); if (e) e.textContent = s; };
+  set("pk-trip", `From ${ORIGIN.name} · ${$("whenName").textContent}`);
+  set("pk-best", [txt("#verdict .big"), txt("#verdict .pill")].filter(Boolean).join(" · "));
+  set("pk-ew", txt("#eastwest .dirword"));
+  set("pk-cond", [...document.querySelectorAll("#strip > div:not(.stripnote)")].slice(0, 2)
+    .map(d => d.querySelector(".v").textContent.replace(/\s+/g, " ").trim()).join(" · "));
+  set("pk-list", txt("#list .row .name b") ? "Top: " + txt("#list .row .name b") : "");
+  set("pk-win", txt("#windows .win b") ? "Top: " + txt("#windows .win b") + " · " + txt("#windows .win .eyebrow") : "");
+  set("pk-mtk", txt("#mlist .row .name b") ? "Best out east: " + txt("#mlist .row .name b") + " · " + txt("#mlist .row .pcell") : "");
+}
+const folds = [...document.querySelectorAll("details.fold")];
+const foldState = store.get("folds") || {};
+folds.forEach(f => {
+  if (f.id in foldState) f.open = !!foldState[f.id];
+  f.addEventListener("toggle", () => { foldState[f.id] = f.open; store.set("folds", foldState); syncFoldAll(); });
+});
+function syncFoldAll(){ $("foldAll").textContent = folds.some(f => f.open) ? "Collapse all" : "Expand all"; }
+syncFoldAll();
+$("jump").addEventListener("click", e => {
+  const a = e.target.closest("a[href^='#f-']");
+  if (a){
+    e.preventDefault();
+    const f = document.querySelector(a.getAttribute("href"));
+    f.open = true;
+    window.scrollTo(0, f.getBoundingClientRect().top + window.scrollY - $("jump").offsetHeight - 6);
+    return;
+  }
+  if (e.target.closest("#foldAll")){ const open = !folds.some(f => f.open); folds.forEach(f => { f.open = open; }); }
+});
 
 // ---------- "When are you going?" picker ----------
 const WHEN_FIRST = 4, WHEN_LAST = 20; // pickable hours, 4 AM to 8 PM
